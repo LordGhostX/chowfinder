@@ -42,6 +42,7 @@ export function normalizeVendor(raw) {
     maxTime: numberOrNull(raw.maximum_delivery_time),
     open: raw.is_open === true || raw.is_open === 1,
     unavailable: raw.is_temporarily_unavailable === true || raw.is_temporarily_unavailable === 1,
+    chowpass: raw.is_chowpass_vendor === true || raw.is_chowpass_vendor === 1,
     offer: typeof raw.discount_text === "string" ? raw.discount_text.trim() : "",
     hasDiscount: Boolean(raw.discount_text?.trim()) || (Array.isArray(raw.discounts) && raw.discounts.length > 0),
   };
@@ -62,6 +63,10 @@ export function filterRestaurants(restaurants, preferences) {
     }
 
     if (preferences.discounts && !restaurant.hasDiscount) {
+      return false;
+    }
+
+    if (preferences.chowpass && !restaurant.chowpass) {
       return false;
     }
 

@@ -2,6 +2,8 @@ import { getRestaurants, searchAddresses, selectAddress } from "./api.js";
 import { filterRestaurants, sortRestaurants } from "./restaurant-model.js";
 
 const $ = (id) => document.getElementById(id);
+const LAST_ADDRESS_KEY = "chowfinder.lastAddress";
+const FILTERS_KEY = "chowfinder.filters";
 const state = {
   address: null,
   restaurants: [],
@@ -17,6 +19,75 @@ let debounceTimer;
 let suggestions = [];
 let activeSuggestion = -1;
 let retryLastRequest;
+
+function readLastAddress() {
+  try {
+    const address = JSON.parse(localStorage.getItem(LAST_ADDRESS_KEY));
+    if (!Number.isSafeInteger(address?.id) || address.id <= 0
+      || typeof address.label !== "string" || !address.label.trim()
+      || typeof address.country !== "string") {
+      return null;
+    }
+
+    return { id: address.id, label: address.label.trim(), country: address.country };
+  } catch {
+    return null;
+  }
+}
+
+function rememberAddress(address) {
+  try {
+    localStorage.setItem(LAST_ADDRESS_KEY, JSON.stringify(address));
+  } catch {
+    // Address selection still works when browser storage is unavailable.
+  }
+}
+
+function restoreFilters() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(FILTERS_KEY));
+    if (!saved || typeof saved !== "object") {
+      return;
+    }
+
+    const rating = [...document.querySelectorAll('input[name="rating"]')]
+      .find((input) => Number(input.value) === saved.rating);
+    if (rating) {
+      rating.checked = true;
+    }
+
+    for (const [key, id] of [["fee", "fee-filter"], ["time", "time-filter"], ["sort", "sort-order"]]) {
+      const value = saved[key] === null ? "" : String(saved[key]);
+      if ([...$(id).options].some((option) => option.value === value)) {
+        $(id).value = value;
+      }
+    }
+
+    for (const [key, id] of [["discounts", "discount-filter"], ["open", "open-filter"], ["chowpass", "chowpass-filter"]]) {
+      if (typeof saved[key] === "boolean") {
+        $(id).checked = saved[key];
+      }
+    }
+  } catch {
+    // Keep the default filters when saved preferences cannot be read.
+  }
+}
+
+function rememberFilters() {
+  try {
+    localStorage.setItem(FILTERS_KEY, JSON.stringify({ ...preferences(), sort: $("sort-order").value }));
+  } catch {
+    // Filtering still works when browser storage is unavailable.
+  }
+}
+
+function applyAddress(address) {
+  state.address = address;
+  state.currency = address.country.toLowerCase() === "ghana" ? "GHS" : "NGN";
+  updateCurrency();
+  $("selected-address").textContent = address.label;
+  $("address-input").value = address.label;
+}
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -46,6 +117,7 @@ function preferences() {
     time: $("time-filter").value === "" ? null : Number($("time-filter").value),
     discounts: $("discount-filter").checked,
     open: $("open-filter").checked,
+    chowpass: $("chowpass-filter").checked,
   };
 }
 
@@ -159,10 +231,8 @@ async function chooseAddress(suggestion) {
       return;
     }
 
-    state.address = address;
-    state.currency = address.country.toLowerCase() === "ghana" ? "GHS" : "NGN";
-    updateCurrency();
-    $("selected-address").textContent = address.label;
+    applyAddress(address);
+    rememberAddress(address);
     retryLastRequest = () => loadRestaurants(true);
     const page = await getRestaurants(address.id, null, controller.signal);
     if (!controller.signal.aborted) {
@@ -303,6 +373,7 @@ function renderChips(filters) {
   if (filters.time !== null) labels.push(`Within ${filters.time} mins`);
   if (filters.discounts) labels.push("With discounts");
   if (filters.open) labels.push("Open now");
+  if (filters.chowpass) labels.push("Chowpass only");
   $("active-filters").replaceChildren(...labels.map((label) => element("span", "filter-chip", label)));
   $("active-filters").hidden = labels.length === 0;
 }
@@ -393,11 +464,27 @@ $("example-address").addEventListener("click", (event) => {
   findAddresses();
 });
 
-$("filter-form").addEventListener("change", render);
-$("sort-order").addEventListener("change", render);
+$("filter-form").addEventListener("change", () => {
+  rememberFilters();
+  render();
+});
+$("sort-order").addEventListener("change", () => {
+  rememberFilters();
+  render();
+});
 $("reset-filters").addEventListener("click", () => {
   $("filter-form").reset();
+  rememberFilters();
   render();
 });
 $("load-more").addEventListener("click", () => loadRestaurants());
 $("retry-button").addEventListener("click", () => retryLastRequest?.());
+
+restoreFilters();
+const lastAddress = readLastAddress();
+if (lastAddress) {
+  applyAddress(lastAddress);
+  loadRestaurants(true);
+} else {
+  render();
+}

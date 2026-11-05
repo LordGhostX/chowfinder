@@ -16,6 +16,7 @@ const vendor = (changes = {}) => normalizeVendor({
   maximum_delivery_time: 30,
   is_open: true,
   is_temporarily_unavailable: false,
+  is_chowpass_vendor: true,
   discount_text: "10% off selected items",
   discounts: [],
   ...changes,
@@ -27,9 +28,10 @@ const preferences = {
   time: 30,
   discounts: true,
   open: true,
+  chowpass: true,
 };
 
-test("all five preferences compose, with inclusive fee and time limits", () => {
+test("all six preferences compose, with inclusive fee and time limits", () => {
   const matching = vendor();
   const others = [
     vendor({ id: 2, average_rating: "3.99" }),
@@ -37,6 +39,8 @@ test("all five preferences compose, with inclusive fee and time limits", () => {
     vendor({ id: 4, maximum_delivery_time: 31 }),
     vendor({ id: 5, discount_text: "" }),
     vendor({ id: 6, is_open: false }),
+    vendor({ id: 7, is_chowpass_vendor: false }),
+    vendor({ id: 8, is_chowpass_vendor: undefined }),
   ];
 
   assert.deepEqual(filterRestaurants([matching, ...others], preferences), [matching]);

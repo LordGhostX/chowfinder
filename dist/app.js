@@ -347,6 +347,7 @@ function render() {
 }
 
 $("address-input").addEventListener("input", () => {
+  $("address-error").hidden = true;
   closeSuggestions();
   if ($("address-input").value.trim().length >= 3) {
     debounceTimer = setTimeout(findAddresses, 350);

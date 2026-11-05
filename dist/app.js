@@ -63,7 +63,12 @@ function restoreFilters() {
       }
     }
 
-    for (const [key, id] of [["discounts", "discount-filter"], ["open", "open-filter"], ["chowpass", "chowpass-filter"]]) {
+    for (const [key, id] of [
+      ["discounts", "discount-filter"],
+      ["open", "open-filter"],
+      ["chowpass", "chowpass-filter"],
+      ["verified", "verified-filter"],
+    ]) {
       if (typeof saved[key] === "boolean") {
         $(id).checked = saved[key];
       }
@@ -118,6 +123,7 @@ function preferences() {
     discounts: $("discount-filter").checked,
     open: $("open-filter").checked,
     chowpass: $("chowpass-filter").checked,
+    verified: $("verified-filter").checked,
   };
 }
 
@@ -374,6 +380,7 @@ function renderChips(filters) {
   if (filters.discounts) labels.push("With discounts");
   if (filters.open) labels.push("Open now");
   if (filters.chowpass) labels.push("Chowpass only");
+  if (filters.verified) labels.push("Verified only");
   $("active-filters").replaceChildren(...labels.map((label) => element("span", "filter-chip", label)));
   $("active-filters").hidden = labels.length === 0;
 }

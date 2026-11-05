@@ -71,13 +71,18 @@
                 <input type="checkbox" id="chowpass-filter" role="switch" />
                 <span class="toggle-track" aria-hidden="true"></span>
               </label>
+              <label class="toggle-row" for="verified-filter">
+                <span><strong>Verified only</strong><small>Verified restaurants</small></span>
+                <input type="checkbox" id="verified-filter" role="switch" checked />
+                <span class="toggle-track" aria-hidden="true"></span>
+              </label>
             </div>
           </form>
           <div class="filter-footnote"><span aria-hidden="true">✳</span><p>A good rating is even better with a few reviews behind it.</p></div>
         </aside>
 
         <section class="results" aria-labelledby="results-heading" aria-busy="false">
-          <div class="results-toolbar"><div><h2 id="results-heading">Your next meal starts here</h2><p id="results-summary" role="status" aria-live="polite">Pick an address to see what’s nearby.</p></div><label class="sort-wrap"><span>Sort by</span><select id="sort-order" aria-label="Sort restaurants"><option value="recommended">Recommended</option><option value="rating">Highest rated</option><option value="fee">Lowest delivery fee</option><option value="time">Fastest delivery</option></select></label></div>
+          <div class="results-toolbar"><div><h2 id="results-heading">Your next meal starts here</h2><p id="results-summary" role="status" aria-live="polite">Pick an address to see what’s nearby.</p></div><label class="sort-wrap"><span>Sort by</span><select id="sort-order" aria-label="Sort restaurants"><option value="recommended">Recommended</option><option value="distance">Closest</option><option value="rating">Highest rated</option><option value="fee">Lowest delivery fee</option><option value="time">Fastest delivery</option></select></label></div>
           <div id="active-filters" class="active-filters" aria-label="Active preferences" hidden></div>
           <div id="results-error" class="results-error" role="alert" hidden><div><strong>Something got in the way.</strong><p id="results-error-text"></p></div><button id="retry-button" type="button" class="secondary-button">Try again</button></div>
           <div id="empty-state" class="empty-state"><div class="empty-illustration" aria-hidden="true"><div class="plate"><span>✳</span></div><div class="fork">≡</div><div class="spoon"></div><span class="crumb crumb-one">✦</span><span class="crumb crumb-two">✦</span></div><p class="eyebrow">SOMETHING GOOD IS CLOSE BY</p><h3>First, where should we look?</h3><p>Enter your address above. We’ll bring the options.<br />You bring the appetite.</p><button type="button" id="example-address" class="example-button">Try Lekki Phase 1 <span aria-hidden="true">↗</span></button></div>

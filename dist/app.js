@@ -1,0 +1,402 @@
+import { getRestaurants, searchAddresses, selectAddress } from "./api.js";
+import { filterRestaurants, sortRestaurants } from "./restaurant-model.js";
+
+const $ = (id) => document.getElementById(id);
+const state = {
+  address: null,
+  restaurants: [],
+  hasMore: false,
+  cursor: null,
+  loading: false,
+  error: "",
+  currency: "NGN",
+};
+let searchController;
+let restaurantController;
+let debounceTimer;
+let suggestions = [];
+let activeSuggestion = -1;
+let retryLastRequest;
+
+function element(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) {
+    node.className = className;
+  }
+
+  if (text !== undefined) {
+    node.textContent = text;
+  }
+
+  return node;
+}
+
+function money(minorUnits, currency = state.currency) {
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(minorUnits / 100);
+}
+
+function preferences() {
+  return {
+    rating: Number(document.querySelector('input[name="rating"]:checked').value),
+    fee: $("fee-filter").value === "" ? null : Number($("fee-filter").value),
+    time: $("time-filter").value === "" ? null : Number($("time-filter").value),
+    discounts: $("discount-filter").checked,
+    open: $("open-filter").checked,
+  };
+}
+
+function updateCurrency() {
+  for (const option of $("fee-filter").options) {
+    if (option.value !== "" && option.value !== "0") {
+      option.textContent = `Up to ${money(Number(option.value) * 100)}`;
+    }
+  }
+}
+
+function closeSuggestions() {
+  searchController?.abort();
+  clearTimeout(debounceTimer);
+  suggestions = [];
+  activeSuggestion = -1;
+  $("address-suggestions").hidden = true;
+  $("address-input").setAttribute("aria-expanded", "false");
+  $("address-input").removeAttribute("aria-activedescendant");
+}
+
+function renderSuggestions() {
+  $("address-options").replaceChildren();
+  suggestions.forEach((suggestion, index) => {
+    const item = element("li");
+    const button = element("button", "address-option", suggestion.description);
+    button.type = "button";
+    button.id = `address-option-${index}`;
+    button.setAttribute("role", "option");
+    button.setAttribute("aria-selected", String(index === activeSuggestion));
+    button.tabIndex = -1;
+    button.addEventListener("click", () => chooseAddress(suggestion));
+    item.append(button);
+    $("address-options").append(item);
+  });
+
+  $("address-input").setAttribute("aria-expanded", "true");
+  if (activeSuggestion >= 0) {
+    $("address-input").setAttribute("aria-activedescendant", `address-option-${activeSuggestion}`);
+  } else {
+    $("address-input").removeAttribute("aria-activedescendant");
+  }
+}
+
+async function findAddresses() {
+  const query = $("address-input").value.trim();
+  searchController?.abort();
+  if (query.length < 3) {
+    closeSuggestions();
+    return;
+  }
+
+  const controller = new AbortController();
+  searchController = controller;
+  suggestions = [];
+  activeSuggestion = -1;
+  $("address-options").replaceChildren();
+  $("address-suggestions").hidden = false;
+  $("address-input").setAttribute("aria-expanded", "true");
+  $("suggestions-status").textContent = "Looking for your address…";
+  $("address-error").hidden = true;
+
+  try {
+    const results = await searchAddresses(query, controller.signal);
+    if (controller.signal.aborted) {
+      return;
+    }
+
+    suggestions = results;
+    renderSuggestions();
+    $("suggestions-status").textContent = results.length
+      ? "Choose your delivery area"
+      : "No addresses found. Try a nearby street, area or landmark.";
+  } catch (error) {
+    if (!controller.signal.aborted) {
+      $("suggestions-status").textContent = error.message;
+    }
+  }
+}
+
+function acceptPage(page, reset) {
+  const merged = reset ? page.restaurants : [...state.restaurants, ...page.restaurants];
+  state.restaurants = [...new Map(merged.map((restaurant) => [restaurant.id, restaurant])).values()];
+  state.hasMore = page.hasMore;
+  state.cursor = page.cursor;
+  if (state.restaurants.length) {
+    state.currency = state.restaurants[0].currency;
+    updateCurrency();
+  }
+}
+
+async function chooseAddress(suggestion) {
+  closeSuggestions();
+  restaurantController?.abort();
+  const controller = new AbortController();
+  restaurantController = controller;
+  retryLastRequest = () => chooseAddress(suggestion);
+  state.address = null;
+  state.restaurants = [];
+  state.hasMore = false;
+  state.cursor = null;
+  state.loading = true;
+  state.error = "";
+  $("address-input").value = suggestion.description;
+  $("selected-address").textContent = `Locating ${suggestion.description}…`;
+  render();
+
+  try {
+    const address = await selectAddress(suggestion.placeId, controller.signal);
+    if (controller.signal.aborted) {
+      return;
+    }
+
+    state.address = address;
+    state.currency = address.country.toLowerCase() === "ghana" ? "GHS" : "NGN";
+    updateCurrency();
+    $("selected-address").textContent = address.label;
+    retryLastRequest = () => loadRestaurants(true);
+    const page = await getRestaurants(address.id, null, controller.signal);
+    if (!controller.signal.aborted) {
+      acceptPage(page, true);
+    }
+  } catch (error) {
+    if (!controller.signal.aborted) {
+      state.error = error.message;
+      if (!state.address) {
+        $("selected-address").textContent = "Choose another address or try again";
+      }
+    }
+  } finally {
+    if (!controller.signal.aborted) {
+      state.loading = false;
+      render();
+    }
+  }
+}
+
+async function loadRestaurants(reset = false) {
+  if (!state.address || state.loading || (!reset && !state.hasMore)) {
+    return;
+  }
+
+  restaurantController?.abort();
+  const controller = new AbortController();
+  restaurantController = controller;
+  retryLastRequest = () => loadRestaurants(reset);
+  state.loading = true;
+  state.error = "";
+  render();
+
+  try {
+    const page = await getRestaurants(state.address.id, reset ? null : state.cursor, controller.signal);
+    if (!controller.signal.aborted) {
+      acceptPage(page, reset);
+    }
+  } catch (error) {
+    if (!controller.signal.aborted) {
+      state.error = error.message;
+    }
+  } finally {
+    if (!controller.signal.aborted) {
+      state.loading = false;
+      render();
+    }
+  }
+}
+
+function icon(kind) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", kind === "time"
+    ? "M12 6v6l4 2M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z"
+    : "M3 5h11v12H3zM14 9h4l3 4v4h-7M5 17a2 2 0 1 0 4 0m7 0a2 2 0 1 0 4 0");
+  svg.append(path);
+  return svg;
+}
+
+function card(restaurant) {
+  const article = element("article", "restaurant-card");
+  const imageLink = element("a", "card-image-link");
+  imageLink.href = restaurant.url;
+  imageLink.target = "_blank";
+  imageLink.rel = "noopener noreferrer";
+  imageLink.setAttribute("aria-label", `View ${restaurant.name} on Chowdeck`);
+  const fallback = () => {
+    imageLink.querySelector("img")?.remove();
+    imageLink.prepend(element("span", "image-fallback", restaurant.name.slice(0, 1)));
+  };
+
+  if (restaurant.image) {
+    const image = element("img", "card-image");
+    image.src = restaurant.image;
+    image.alt = "";
+    image.loading = "lazy";
+    image.decoding = "async";
+    image.addEventListener("error", fallback, { once: true });
+    imageLink.append(image);
+  } else {
+    fallback();
+  }
+
+  if (restaurant.hasDiscount) {
+    const offer = element("span", "offer-badge", `✳ ${restaurant.offer || "Discounts available"}`);
+    offer.title = `${restaurant.offer || "Discounts available"}. Offers may apply to selected items.`;
+    imageLink.append(offer);
+  }
+
+  if (!restaurant.open || restaurant.unavailable) {
+    imageLink.append(element("span", "closed-label", restaurant.open ? "Unavailable now" : "Closed now"));
+  }
+
+  const body = element("div", "card-body");
+  const titleRow = element("div", "card-title-row");
+  const title = element("h3", "card-title");
+  const titleLink = element("a", "", restaurant.name);
+  titleLink.href = restaurant.url;
+  titleLink.target = "_blank";
+  titleLink.rel = "noopener noreferrer";
+  titleLink.setAttribute("aria-label", `${restaurant.name}, opens on Chowdeck in a new tab`);
+  title.append(titleLink);
+
+  const rating = element("span", "card-rating");
+  rating.append(element("span", "star", "★ "));
+  rating.append(document.createTextNode(restaurant.rating === null ? "New" : restaurant.rating.toFixed(1)));
+  rating.append(element("span", "rating-count", `(${new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(restaurant.reviewCount)})`));
+  rating.setAttribute("aria-label", restaurant.rating === null ? "No rating yet" : `Rated ${restaurant.rating} out of 5 from ${restaurant.reviewCount} reviews`);
+  titleRow.append(title, rating);
+
+  const stats = element("div", "card-stats");
+  const delivery = element("span");
+  delivery.append(icon("delivery"), document.createTextNode(restaurant.fee === null ? "Fee unavailable" : restaurant.fee === 0 ? "Free delivery" : money(restaurant.fee, restaurant.currency)));
+  const time = element("span");
+  const timeText = restaurant.maxTime === null
+    ? "Time unavailable"
+    : restaurant.minTime === null || restaurant.minTime === restaurant.maxTime
+      ? `${restaurant.maxTime} mins`
+      : `${restaurant.minTime}–${restaurant.maxTime} mins`;
+  time.append(icon("time"), document.createTextNode(timeText));
+  stats.append(delivery, time);
+
+  const available = restaurant.open && !restaurant.unavailable;
+  const status = element("div", `card-status${available ? "" : " unavailable"}`);
+  status.append(element("span", "status-dot"), document.createTextNode(available ? "Open & ready for you" : restaurant.open ? "Temporarily unavailable" : "Currently closed"));
+  body.append(titleRow, element("p", "card-area", restaurant.location || "Restaurant"), stats, status);
+  article.append(imageLink, body);
+  return article;
+}
+
+function renderChips(filters) {
+  const labels = [];
+  if (filters.rating) labels.push(`${filters.rating}+ stars`);
+  if (filters.fee !== null) labels.push(filters.fee === 0 ? "Free delivery" : `Delivery ≤ ${money(filters.fee * 100)}`);
+  if (filters.time !== null) labels.push(`Within ${filters.time} mins`);
+  if (filters.discounts) labels.push("With discounts");
+  if (filters.open) labels.push("Open now");
+  $("active-filters").replaceChildren(...labels.map((label) => element("span", "filter-chip", label)));
+  $("active-filters").hidden = labels.length === 0;
+}
+
+function render() {
+  const filters = preferences();
+  const matches = sortRestaurants(filterRestaurants(state.restaurants, filters), $("sort-order").value);
+  renderChips(filters);
+  document.querySelector(".results").setAttribute("aria-busy", String(state.loading));
+  $("restaurant-grid").replaceChildren(...matches.map(card));
+  $("results-error").hidden = !state.error;
+  $("results-error-text").textContent = state.error;
+  $("loading-state").hidden = !state.loading || state.restaurants.length > 0;
+  $("empty-state").hidden = state.loading || Boolean(state.error) || matches.length > 0;
+  $("pagination").hidden = !state.address || state.restaurants.length === 0 || (!state.hasMore && matches.length === 0);
+  $("load-more").hidden = !state.hasMore;
+  $("load-more").disabled = state.loading;
+  $("load-more").firstChild.textContent = state.loading ? "Loading restaurants… " : "Load more restaurants ";
+  $("freshness").hidden = state.restaurants.length === 0;
+
+  if (state.address) {
+    $("results-heading").textContent = "Restaurants near you";
+    $("results-summary").textContent = `${matches.length} ${matches.length === 1 ? "match" : "matches"} · ${state.restaurants.length} restaurants loaded`;
+    $("pagination-note").textContent = state.hasMore
+      ? `Filters apply to ${state.restaurants.length} loaded restaurants. There are more to explore.`
+      : `All ${state.restaurants.length} restaurants loaded. You’re seeing every match.`;
+
+    if (!matches.length && !state.loading && !state.error) {
+      const title = state.restaurants.length ? "A little too particular?" : "No restaurants here just yet.";
+      const message = state.restaurants.length
+        ? state.hasMore ? "Try relaxing a filter, or load more restaurants below." : "Try relaxing a filter to find something good."
+        : "Try a nearby street or a different delivery address.";
+      const heading = element("h3", "", title);
+      const description = element("p", "", message);
+      $("empty-state").replaceChildren(heading, description);
+    }
+  } else if (state.loading) {
+    $("results-summary").textContent = "Setting your delivery area…";
+  } else {
+    $("results-summary").textContent = "Pick an address to see what’s nearby.";
+  }
+}
+
+$("address-input").addEventListener("input", () => {
+  closeSuggestions();
+  if ($("address-input").value.trim().length >= 3) {
+    debounceTimer = setTimeout(findAddresses, 350);
+  }
+});
+
+$("address-input").addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeSuggestions();
+  } else if (["ArrowDown", "ArrowUp"].includes(event.key) && suggestions.length) {
+    event.preventDefault();
+    activeSuggestion = (activeSuggestion + (event.key === "ArrowDown" ? 1 : -1) + suggestions.length) % suggestions.length;
+    renderSuggestions();
+    $(`address-option-${activeSuggestion}`).scrollIntoView({ block: "nearest" });
+  } else if (event.key === "Enter" && activeSuggestion >= 0) {
+    event.preventDefault();
+    chooseAddress(suggestions[activeSuggestion]);
+  }
+});
+
+$("address-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  clearTimeout(debounceTimer);
+  if ($("address-input").value.trim().length < 3) {
+    $("address-error").textContent = "Enter at least three characters to find your address.";
+    $("address-error").hidden = false;
+    $("address-input").focus();
+  } else {
+    findAddresses();
+  }
+});
+
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".address-search")) {
+    closeSuggestions();
+  }
+});
+
+$("example-address").addEventListener("click", (event) => {
+  event.stopPropagation();
+  $("address-input").value = "Lekki Phase 1 Lagos";
+  $("address-input").focus();
+  findAddresses();
+});
+
+$("filter-form").addEventListener("change", render);
+$("sort-order").addEventListener("change", render);
+$("reset-filters").addEventListener("click", () => {
+  $("filter-form").reset();
+  render();
+});
+$("load-more").addEventListener("click", () => loadRestaurants());
+$("retry-button").addEventListener("click", () => retryLastRequest?.());

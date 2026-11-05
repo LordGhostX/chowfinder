@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f7f6f2" />
+    <meta name="description" content="Find Chowdeck restaurants near your address. Compare ratings, delivery fees, delivery times, discounts and availability." />
+    <title>Chowfinder — Find your next good meal</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='20' fill='%23df4b2e'/%3E%3Cpath d='M15 34h34a17 17 0 01-34 0M20 23h24M24 16v7m8-7v7m8-7v7' fill='none' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Chowfinder home">
+        <span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M5 17h22a11 11 0 0 1-22 0ZM9 11h14M12 5v4m8-4v4" /></svg></span>
+        <span>chowfinder<span class="brand-period">.</span></span>
+      </a>
+      <div class="topbar-note"><span class="tiny-dot"></span> A little easier to choose.</div>
+      <a class="source-link" href="https://chowdeck.com/store" target="_blank" rel="noopener noreferrer">Open Chowdeck <span aria-hidden="true">↗</span></a>
+    </header>
+
+    <main class="page">
+      <section class="intro" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">LESS SCROLLING. MORE EATING.</p>
+          <h1 id="page-title">Find your next <em>good meal.</em></h1>
+          <p class="intro-copy">The restaurants around you. Just the way you like them.</p>
+        </div>
+        <div class="intro-stamp" aria-hidden="true"><span>GOOD FOOD</span><svg viewBox="0 0 64 64"><path d="M14 32h36a18 18 0 0 1-36 0ZM20 22h24M26 12v9m12-9v9M23 53h18" /></svg><span>YOUR RULES</span></div>
+      </section>
+
+      <section class="address-panel" aria-label="Delivery address">
+        <div class="address-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><div><span>WHERE ARE WE EATING?</span><p id="selected-address">Add your delivery address</p></div></div>
+        <div class="address-search">
+          <form id="address-form" role="search" autocomplete="off">
+            <label class="sr-only" for="address-input">Search for your delivery address</label>
+            <input id="address-input" type="search" placeholder="Enter a street, area or landmark…" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="address-options" maxlength="200" />
+            <button class="primary-button" id="address-search-button" type="submit">Find my area <span aria-hidden="true">→</span></button>
+          </form>
+          <div id="address-suggestions" class="suggestions" hidden><p id="suggestions-status" class="suggestions-status" role="status"></p><ul id="address-options" role="listbox" aria-label="Matching addresses"></ul></div>
+        </div>
+      </section>
+      <p id="address-error" class="address-error" role="alert" hidden></p>
+
+      <div class="workspace">
+        <aside class="filters" aria-labelledby="filters-title">
+          <div class="filter-heading"><h2 id="filters-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6m8 4v6" /></svg> Your preferences</h2><button type="button" id="reset-filters" class="text-button">Reset</button></div>
+          <form id="filter-form">
+            <fieldset><legend>Minimum rating</legend><div class="rating-options" id="rating-options">
+              <label><input type="radio" name="rating" value="0" checked /><span>Any</span></label>
+              <label><input type="radio" name="rating" value="3.5" /><span>3.5 <b>★</b></span></label>
+              <label><input type="radio" name="rating" value="4" /><span>4.0 <b>★</b></span></label>
+              <label><input type="radio" name="rating" value="4.5" /><span>4.5 <b>★</b></span></label>
+            </div></fieldset>
+            <fieldset><legend>Maximum delivery fee</legend><label class="select-wrap"><span class="sr-only">Maximum delivery fee</span><select id="fee-filter"><option value="">Any delivery fee</option><option value="0">Free delivery</option><option value="500">Up to ₦500</option><option value="1000">Up to ₦1,000</option><option value="1500">Up to ₦1,500</option><option value="2000">Up to ₦2,000</option><option value="3000">Up to ₦3,000</option></select><span aria-hidden="true">⌄</span></label></fieldset>
+            <fieldset><legend>Maximum delivery time</legend><label class="select-wrap"><span class="sr-only">Maximum delivery time</span><select id="time-filter"><option value="">Any delivery time</option><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option></select><span aria-hidden="true">⌄</span></label></fieldset>
+            <div class="toggle-group"><label class="toggle-row" for="discount-filter"><span><strong>A little deal, please</strong><small>Restaurants with discounts</small></span><input type="checkbox" id="discount-filter" role="switch" /><span class="toggle-track" aria-hidden="true"></span></label><label class="toggle-row" for="open-filter"><span><strong>Ready when you are</strong><small>Open and available now</small></span><input type="checkbox" id="open-filter" role="switch" /><span class="toggle-track" aria-hidden="true"></span></label></div>
+          </form>
+          <div class="filter-footnote"><span aria-hidden="true">✳</span><p>A good rating is even better with a few reviews behind it.</p></div>
+        </aside>
+
+        <section class="results" aria-labelledby="results-heading" aria-busy="false">
+          <div class="results-toolbar"><div><h2 id="results-heading">Your next meal starts here</h2><p id="results-summary" role="status" aria-live="polite">Pick an address to see what’s nearby.</p></div><label class="sort-wrap"><span>Sort by</span><select id="sort-order" aria-label="Sort restaurants"><option value="recommended">Recommended</option><option value="rating">Highest rated</option><option value="fee">Lowest delivery fee</option><option value="time">Fastest delivery</option></select></label></div>
+          <div id="active-filters" class="active-filters" aria-label="Active preferences" hidden></div>
+          <div id="results-error" class="results-error" role="alert" hidden><div><strong>Something got in the way.</strong><p id="results-error-text"></p></div><button id="retry-button" type="button" class="secondary-button">Try again</button></div>
+          <div id="empty-state" class="empty-state"><div class="empty-illustration" aria-hidden="true"><div class="plate"><span>✳</span></div><div class="fork">≡</div><div class="spoon"></div><span class="crumb crumb-one">✦</span><span class="crumb crumb-two">✦</span></div><p class="eyebrow">SOMETHING GOOD IS CLOSE BY</p><h3>First, where should we look?</h3><p>Enter your address above. We’ll bring the options.<br />You bring the appetite.</p><button type="button" id="example-address" class="example-button">Try Lekki Phase 1 <span aria-hidden="true">↗</span></button></div>
+          <div id="loading-state" class="loading-state" hidden><span class="spinner" aria-hidden="true"></span><p>Finding the good stuff nearby…</p></div>
+          <div id="restaurant-grid" class="restaurant-grid"></div>
+          <div id="pagination" class="pagination" hidden><p id="pagination-note"></p><button type="button" id="load-more" class="secondary-button">Load more restaurants <span aria-hidden="true">↓</span></button></div>
+          <p class="freshness" id="freshness" hidden>Live from Chowdeck. Availability and final fees may change at checkout.</p>
+        </section>
+      </div>
+    </main>
+    <footer class="footer"><span class="footer-brand">chowfinder.</span><p>An independent way to explore Chowdeck restaurants.</p><span>Find it here. Order on Chowdeck. <span aria-hidden="true">↗</span></span></footer>
+  </body>
+</html>

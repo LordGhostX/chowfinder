@@ -31,6 +31,8 @@ Enter an address and choose a search suggestion. Search restaurant names by subs
 
 **Most reviewed** sorts by review count. **Largest discount** sorts by the biggest active, published percentage offer on selected items, excluding expired or future-published offers. Cash discounts and text-only offers have no comparable percentage and sort after percentage offers.
 
+**Pick for me** randomly chooses from the loaded restaurants matching your current search and filters, moves its highlighted card to the front and shows an order link. The other cards keep your selected sort order. Each click makes a fresh choice, so picks can repeat. The choice clears if it no longer matches after a filter change or data refresh.
+
 Cards show scheduled closing times in the delivery country's local time (Nigeria or Ghana), including overnight service from the previous day. Day-specific hours take precedence over default hours. **Stays open for at least** requires an open, available restaurant with a known active schedule and at least the selected time remaining. Missing or invalid hours and schedules that do not cover the current time are excluded from this filter. Closing-time calculations update every minute while the page is visible and when returning to it, independently of API refreshes. Closing hours are scheduled times and do not guarantee availability until then.
 
 ## Data and browser storage

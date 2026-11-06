@@ -16,6 +16,7 @@ const state = {
   pageCount: 0,
   refreshedAt: 0,
   refreshFailed: false,
+  pickId: null,
 };
 let searchController;
 let restaurantController;
@@ -420,6 +421,7 @@ function closingText(restaurant, clock) {
 
 function card(restaurant, clock) {
   const article = element("article", "restaurant-card");
+  article.classList.toggle("is-picked", restaurant.id === state.pickId);
   const imageLink = element("a", "card-image-link");
   imageLink.href = restaurant.url;
   imageLink.target = "_blank";
@@ -517,13 +519,41 @@ function renderChips(filters) {
   $("active-filters").hidden = labels.length === 0;
 }
 
+function addressClock(now = Date.now()) {
+  const timeZone = state.address?.country.toLowerCase() === "ghana" ? "Africa/Accra" : "Africa/Lagos";
+  return localClock(now, timeZone);
+}
+
+function renderPick(restaurant) {
+  $("pick-result").hidden = !restaurant;
+  $("pick-result").replaceChildren();
+  if (!restaurant) {
+    return;
+  }
+
+  const link = element("a", "", `${restaurant.name} ↗`);
+  link.href = restaurant.url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.setAttribute("aria-label", `Order from ${restaurant.name} on Chowdeck, opens in a new tab`);
+  $("pick-result").append(document.createTextNode("Your pick: "), link);
+}
+
 function render() {
   const filters = preferences();
   const now = Date.now();
-  const timeZone = state.address?.country.toLowerCase() === "ghana" ? "Africa/Accra" : "Africa/Lagos";
-  const clock = localClock(now, timeZone);
+  const clock = addressClock(now);
   const order = $("sort-order").value;
   const matches = sortRestaurants(filterRestaurants(state.restaurants, filters, clock), order, now);
+  const pick = matches.find((restaurant) => restaurant.id === state.pickId);
+  if (pick) {
+    matches.splice(matches.indexOf(pick), 1);
+    matches.unshift(pick);
+  }
+
+  state.pickId = pick?.id ?? null;
+  renderPick(pick);
+  $("pick-for-me").disabled = matches.length === 0;
   renderChips(filters);
   document.querySelector(".results").setAttribute("aria-busy", String(state.loading));
   $("restaurant-grid").replaceChildren(...matches.map((restaurant) => card(restaurant, clock)));
@@ -622,6 +652,12 @@ $("filter-form").addEventListener("change", () => {
 });
 $("sort-order").addEventListener("change", () => {
   rememberFilters();
+  render();
+});
+$("pick-for-me").addEventListener("click", () => {
+  const matches = filterRestaurants(state.restaurants, preferences(), addressClock());
+  const pick = matches[Math.floor(Math.random() * matches.length)];
+  state.pickId = pick?.id ?? null;
   render();
 });
 $("vendor-search").addEventListener("input", () => {

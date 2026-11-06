@@ -84,6 +84,12 @@ legend { margin: 0 0 12px; padding: 0; font-size: 11px; font-weight: 600; }
 .results-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 1px 0 21px; }
 .results-toolbar h2 { font: 750 19px "Manrope", sans-serif; margin: 0 0 7px; letter-spacing: -.5px; }
 .results-toolbar p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.results-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; }
+.results-actions .pick-button { padding: 8px 11px; color: var(--orange); }
+.results-actions .pick-button span { margin: 0 4px 0 0; }
+.pick-button:disabled { cursor: not-allowed; }
+.pick-result { margin: 0 0 18px; padding: 12px 14px; border: 1px solid #edc4b6; border-radius: 8px; background: var(--orange-light); color: #8d3a23; font-size: 12px; line-height: 1.6; }
+.pick-result a { font-weight: 650; text-underline-offset: 3px; }
 .sort-wrap { display: flex; align-items: center; gap: 7px; font-size: 10px; color: var(--muted); flex-shrink: 0; }
 .sort-wrap select { background: none; color: var(--ink); border: 0; font-size: 11px; font-weight: 600; max-width: 140px; }
 .sort-note { margin: -7px 0 17px; color: var(--muted); font-size: 10px; line-height: 1.6; }
@@ -114,6 +120,7 @@ legend { margin: 0 0 12px; padding: 0; font-size: 11px; font-weight: 600; }
 .restaurant-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 17px; }
 .restaurant-card { border: 1px solid var(--line); border-radius: 11px; overflow: hidden; background: white; transition: transform .18s, box-shadow .18s; display: flex; flex-direction: column; }
 .restaurant-card:hover { transform: translateY(-3px); box-shadow: 0 8px 22px #2437280c; }
+.restaurant-card.is-picked { border-color: var(--orange); box-shadow: 0 0 0 1px var(--orange); }
 .card-image-link { position: relative; display: block; height: 155px; overflow: hidden; background: #e8e7dd; }
 .card-image { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; dynamic-range-limit: standard; }
 .restaurant-card:hover .card-image { transform: scale(1.035); }

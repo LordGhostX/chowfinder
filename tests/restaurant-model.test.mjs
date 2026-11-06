@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { closingWindow, filterRestaurants, localClock, normalizeVendor, sortRestaurants } from "../dist/restaurant-model.js";
+import {
+  closingWindow,
+  filterRestaurants,
+  localClock,
+  normalizeVendor,
+  parseVendorIds,
+  sortRestaurants,
+  vendorsInView,
+} from "../dist/restaurant-model.js";
 
 const vendor = (changes = {}) => normalizeVendor({
   id: 1,
@@ -32,6 +40,35 @@ const preferences = {
   verified: true,
   query: "restaurant",
 };
+
+test("saved vendor choices accept only positive integer IDs and discard duplicate IDs", () => {
+  assert.deepEqual([...parseVendorIds('[1,2,1,"3",null,-1,0,1.5,{"id":4,"name":"Cached vendor"}]')], [1, 2]);
+  assert.deepEqual([...parseVendorIds("invalid")], []);
+  assert.deepEqual([...parseVendorIds('{"id":1}')], []);
+});
+
+test("hidden choices take precedence in browsing and favourites without removing saved favourites", () => {
+  const vendors = [vendor({ id: 1 }), vendor({ id: 2 }), vendor({ id: 3 })];
+  const favourites = new Set([1, 2, 999]);
+  const hidden = new Set([2, 3, 888]);
+
+  assert.deepEqual(vendorsInView(vendors, "all", favourites, hidden).map((item) => item.id), [1]);
+  assert.deepEqual(vendorsInView(vendors, "favourites", favourites, hidden).map((item) => item.id), [1]);
+  assert.deepEqual(vendorsInView(vendors, "hidden", favourites, hidden).map((item) => item.id), [2, 3]);
+  hidden.delete(2);
+  assert.deepEqual(vendorsInView(vendors, "favourites", favourites, hidden).map((item) => item.id), [1, 2]);
+  assert.equal(favourites.has(2), true);
+});
+
+test("favourites render only API-loaded IDs and survive a result refresh without fallback cards", () => {
+  const favourites = new Set([1]);
+  const hidden = new Set();
+
+  assert.deepEqual(vendorsInView([vendor({ id: 2 })], "favourites", favourites, hidden), []);
+  const freshVendor = vendor({ id: 1, name: "Fresh API name", delivery_price: 200000 });
+  assert.deepEqual(vendorsInView([freshVendor], "favourites", favourites, hidden), [freshVendor]);
+  assert.deepEqual([...favourites], [1]);
+});
 
 test("name search composes with restaurant filters and an inclusive fee limit", () => {
   const matching = vendor();

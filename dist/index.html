@@ -103,6 +103,12 @@
               <label class="sort-wrap"><span>Sort by</span><select id="sort-order" aria-label="Sort vendors"><option value="recommended">Recommended</option><option value="distance">Closest</option><option value="rating">Highest rated</option><option value="reviews">Most reviewed</option><option value="discount">Largest discount</option><option value="fee">Lowest delivery fee</option><option value="time">Fastest delivery</option></select></label>
             </div>
           </div>
+          <div class="vendor-views" role="group" aria-label="Vendor view">
+            <button type="button" id="view-all" aria-pressed="true">All vendors</button>
+            <button type="button" id="view-favourites" aria-pressed="false">Favourites (0)</button>
+            <button type="button" id="view-hidden" aria-pressed="false">Hidden vendors (0)</button>
+          </div>
+          <p id="view-note" class="view-note" hidden></p>
           <p id="discount-sort-note" class="sort-note" hidden>Ranked by the largest active percentage off selected items. Offer conditions may apply.</p>
           <div class="vendor-search" role="search" aria-label="Search loaded vendors">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg>
@@ -127,5 +133,9 @@
       <p>An independent way to explore Chowdeck vendors.</p>
       <a class="footer-link" href="https://chowdeck.com/store" target="_blank" rel="noopener noreferrer">Find it here. Order on Chowdeck. <span aria-hidden="true">↗</span></a>
     </footer>
+    <div id="hidden-notice" class="hidden-notice" hidden>
+      <p id="hidden-notice-text" role="status"></p>
+      <button type="button" id="undo-hide">Undo</button>
+    </div>
   </body>
 </html>

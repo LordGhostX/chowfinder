@@ -87,6 +87,12 @@ legend { margin: 0 0 12px; padding: 0; font-size: 11px; font-weight: 600; }
 .results-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; }
 .results-actions .pick-button { padding: 8px 11px; color: var(--orange); }
 .results-actions .pick-button span { margin: 0 4px 0 0; }
+.vendor-views { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 17px; }
+.vendor-views button { padding: 8px 12px; border: 1px solid var(--line); border-radius: 7px; background: white; font-size: 11px; }
+.vendor-views button[aria-pressed="true"] { color: var(--orange); border-color: #eaa48c; background: var(--orange-light); }
+.view-note { margin: -5px 0 18px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.filters-paused #filter-form { opacity: .5; }
+.filters-paused button:disabled { cursor: default; }
 .pick-button:disabled { cursor: not-allowed; }
 .pick-result { margin: 0 0 18px; padding: 12px 14px; border: 1px solid #edc4b6; border-radius: 8px; background: var(--orange-light); color: #8d3a23; font-size: 12px; line-height: 1.6; }
 .pick-result a { font-weight: 650; text-underline-offset: 3px; }
@@ -121,11 +127,25 @@ legend { margin: 0 0 12px; padding: 0; font-size: 11px; font-weight: 600; }
 .restaurant-card { border: 1px solid var(--line); border-radius: 11px; overflow: hidden; background: white; transition: transform .18s, box-shadow .18s; display: flex; flex-direction: column; }
 .restaurant-card:hover { transform: translateY(-3px); box-shadow: 0 8px 22px #2437280c; }
 .restaurant-card.is-picked { border-color: var(--orange); box-shadow: 0 0 0 1px var(--orange); }
+.card-media { position: relative; }
+.card-tools { position: absolute; right: 10px; bottom: 10px; display: flex; align-items: center; gap: 6px; z-index: 2; }
+.card-action { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 1px solid #dfe3d5; border-radius: 6px; background: #fffffff5; color: var(--ink); box-shadow: 0 1px 4px #1c301414; cursor: pointer; }
+.card-action svg { width: 18px; height: 18px; }
+.favourite-button[aria-pressed="true"] { color: var(--orange); border-color: #eaa48c; }
+.favourite-button[aria-pressed="true"] svg { fill: currentColor; }
+.restore-button { width: auto; padding: 0 8px; font-size: 10px; }
+.vendor-menu { position: relative; }
+.vendor-menu summary { list-style: none; font-size: 22px; line-height: 1; }
+.vendor-menu summary::-webkit-details-marker { display: none; }
+.vendor-menu-panel { position: absolute; right: 0; bottom: 40px; width: max-content; padding: 4px; border: 1px solid var(--line); border-radius: 7px; background: white; box-shadow: 0 4px 16px #24372820; }
+.vendor-menu-panel button { display: block; width: 100%; padding: 10px 14px; border: 0; border-radius: 4px; background: white; font-size: 11px; text-align: left; }
+.vendor-menu-panel button:hover { background: var(--orange-light); }
 .card-image-link { position: relative; display: block; height: 155px; overflow: hidden; background: #e8e7dd; }
 .card-image { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; dynamic-range-limit: standard; }
 .restaurant-card:hover .card-image { transform: scale(1.035); }
 .image-fallback { display: grid; place-items: center; height: 100%; background: #eceee4; font: italic 38px var(--serif); color: #7d8e74; }
-.offer-badge { position: absolute; bottom: 11px; left: 10px; right: 10px; width: fit-content; max-width: calc(100% - 20px); color: #8d3a23; background: #fff3e5; padding: 5px 8px; border-radius: 4px; font-size: 9px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.offer-badge { position: absolute; bottom: 11px; left: 10px; right: 10px; width: fit-content; max-width: calc(100% - 100px); color: #8d3a23; background: #fff3e5; padding: 5px 8px; border-radius: 4px; font-size: 9px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.with-restore .offer-badge { max-width: calc(100% - 120px); }
 .card-badges { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
 .closed-label { background: #fffef5f0; border-radius: 4px; color: #596052; font-size: 9px; padding: 5px 8px; }
 .chowpass-badge { margin-left: auto; border: 1px solid #cee1bf; border-radius: 5px; background: #edf6e4; color: #335537; font-size: 9px; font-weight: 700; padding: 4px 8px; box-shadow: 0 1px 4px #1c301414; }
@@ -167,6 +187,9 @@ legend { margin: 0 0 12px; padding: 0; font-size: 11px; font-weight: 600; }
 .footer p { margin: 0 auto 0 0; }
 .footer-link { color: #64775d; text-decoration: none; }
 .footer-link:hover { text-decoration: underline; }
+.hidden-notice { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; align-items: center; gap: 18px; max-width: calc(100% - 32px); padding: 10px 16px; border: 1px solid var(--line); border-radius: 10px; background: white; box-shadow: 0 5px 25px #24372824; }
+.hidden-notice p { margin: 0; font-size: 12px; line-height: 1.6; }
+.hidden-notice button { padding: 8px; border: 0; background: none; color: var(--orange); font-size: 12px; font-weight: 600; }
 @media (min-width: 1550px) { .restaurant-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 1150px) { .restaurant-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .workspace { gap: 25px; grid-template-columns: 225px minmax(0, 1fr); } .card-image-link { height: 165px; } }
 @media (max-width: 760px) { .topbar { height: 72px; padding: 0 5%; } .brand { font-size: 22px; } .brand-icon { height: 34px; width: 34px; } .source-link { font-size: 10px; gap: 6px; } .intro { padding: 30px 0 25px; } h1 { font-size: 31px; letter-spacing: -1.2px; max-width: 290px; } .intro-stamp { width: 75px; height: 75px; margin: 0; flex-shrink: 0; } .intro-stamp span { font-size: 6px; } .intro-stamp svg { width: 34px; height: 34px; } .intro-copy { font-size: 12px; max-width: 250px; line-height: 1.7; } .eyebrow { font-size: 8px; } .address-panel { grid-template-columns: 1fr; padding: 15px; gap: 15px; } .primary-button { padding: 0 12px; gap: 10px; font-size: 11px; } .workspace { display: block; padding-top: 23px; } .filters { position: static; padding: 17px; margin-bottom: 26px; } #filter-form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; } #filter-form fieldset:first-child { grid-column: 1 / -1; } fieldset { margin-top: 17px; } .rating-options { gap: 8px; } .rating-options span { font-size: 11px; } .filter-heading { padding-bottom: 13px; } .toggle-group { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 20px; } .toggle-row { padding-top: 16px; } .toggle-row strong { font-size: 10px; } .toggle-row small { font-size: 9px; } .filter-footnote { display: none; } .results-toolbar { align-items: start; gap: 10px; } .results-toolbar h2 { font-size: 17px; } .sort-wrap { flex-direction: column; align-items: flex-end; gap: 5px; padding-top: 2px; } .sort-wrap select { font-size: 10px; max-width: 120px; } .restaurant-grid { gap: 15px 12px; } .card-image-link { height: 130px; } .card-body { padding: 12px 10px 11px; } .card-title-row { display: block; } .card-title { font-size: 11px; } .card-rating { margin-top: 5px; } .card-area { margin: 6px 0 10px; font-size: 9px; } .card-stats { font-size: 9px; flex-wrap: wrap; gap: 8px; } .offer-badge { font-size: 8px; } .footer { flex-wrap: wrap; gap: 12px; padding-top: 20px; } .footer p { font-size: 9px; } .footer-link { display: none; } .empty-state { min-height: 350px; padding: 24px 15px; } .empty-state h3 { font-size: 25px; } }

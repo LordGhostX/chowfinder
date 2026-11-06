@@ -160,6 +160,21 @@ export function normalizeVendor(raw) {
   };
 }
 
+export function parseVendorIds(serialized) {
+  try {
+    const ids = JSON.parse(serialized);
+    return new Set(Array.isArray(ids) ? ids.filter((id) => Number.isSafeInteger(id) && id > 0) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+export function vendorsInView(vendors, view, favourites, hidden) {
+  return vendors.filter((vendor) => view === "hidden"
+    ? hidden.has(vendor.id)
+    : !hidden.has(vendor.id) && (view !== "favourites" || favourites.has(vendor.id)));
+}
+
 export function filterRestaurants(restaurants, preferences, clock = localClock()) {
   const query = (preferences.query ?? "").trim().toLowerCase();
 

@@ -410,7 +410,9 @@ function card(restaurant, clock) {
   status.append(element("span", "status-dot"), document.createTextNode(available ? "Open & ready for you" : restaurant.open ? "Temporarily unavailable" : "Currently closed"));
   const closing = element("p", "card-closing", closingText(restaurant, clock));
   closing.title = `Scheduled hours in ${state.currency === "GHS" ? "Ghana" : "Nigeria"} local time. Availability may change.`;
-  body.append(titleRow, element("p", "card-area", restaurant.location || "Restaurant"), stats, status, closing);
+  const availability = element("div", "card-availability");
+  availability.append(status, closing);
+  body.append(titleRow, element("p", "card-area", restaurant.location || "Restaurant"), stats, availability);
   article.append(imageLink, body);
   return article;
 }

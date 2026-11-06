@@ -1,9 +1,10 @@
-import { getRestaurants, searchAddresses, selectAddress } from "./api.js";
+import { getRestaurantPages, getRestaurants, searchAddresses, selectAddress } from "./api.js";
 import { closingWindow, filterRestaurants, localClock, sortRestaurants } from "./restaurant-model.js";
 
 const $ = (id) => document.getElementById(id);
 const LAST_ADDRESS_KEY = "chowfinder.lastAddress";
 const FILTERS_KEY = "chowfinder.filters";
+const REFRESH_INTERVAL = 5 * 60 * 1000;
 const state = {
   address: null,
   restaurants: [],
@@ -12,6 +13,9 @@ const state = {
   loading: false,
   error: "",
   currency: "NGN",
+  pageCount: 0,
+  refreshedAt: 0,
+  refreshFailed: false,
 };
 let searchController;
 let restaurantController;
@@ -19,6 +23,9 @@ let debounceTimer;
 let suggestions = [];
 let activeSuggestion = -1;
 let retryLastRequest;
+let refreshController;
+let refreshTimer;
+let refreshDueAt = 0;
 
 function readLastAddress() {
   try {
@@ -220,6 +227,12 @@ function acceptPage(page, reset) {
   state.restaurants = [...new Map(merged.map((restaurant) => [restaurant.id, restaurant])).values()];
   state.hasMore = page.hasMore;
   state.cursor = page.cursor;
+  state.pageCount = reset ? 1 : state.pageCount + 1;
+  if (reset) {
+    state.refreshedAt = Date.now();
+    state.refreshFailed = false;
+  }
+
   if (state.restaurants.length) {
     state.currency = state.restaurants[0].currency;
     updateCurrency();
@@ -228,6 +241,10 @@ function acceptPage(page, reset) {
 
 async function chooseAddress(suggestion) {
   closeSuggestions();
+  clearTimeout(refreshTimer);
+  refreshDueAt = 0;
+  refreshController?.abort();
+  refreshController = null;
   restaurantController?.abort();
   const controller = new AbortController();
   restaurantController = controller;
@@ -236,6 +253,9 @@ async function chooseAddress(suggestion) {
   state.restaurants = [];
   state.hasMore = false;
   state.cursor = null;
+  state.pageCount = 0;
+  state.refreshedAt = 0;
+  state.refreshFailed = false;
   state.loading = true;
   state.error = "";
   $("address-input").value = suggestion.description;
@@ -254,6 +274,7 @@ async function chooseAddress(suggestion) {
     const page = await getRestaurants(address.id, null, controller.signal);
     if (!controller.signal.aborted) {
       acceptPage(page, true);
+      scheduleRefresh();
     }
   } catch (error) {
     if (!controller.signal.aborted) {
@@ -275,6 +296,8 @@ async function loadRestaurants(reset = false) {
     return;
   }
 
+  refreshController?.abort();
+  refreshController = null;
   restaurantController?.abort();
   const controller = new AbortController();
   restaurantController = controller;
@@ -287,6 +310,9 @@ async function loadRestaurants(reset = false) {
     const page = await getRestaurants(state.address.id, reset ? null : state.cursor, controller.signal);
     if (!controller.signal.aborted) {
       acceptPage(page, reset);
+      if (reset) {
+        scheduleRefresh();
+      }
     }
   } catch (error) {
     if (!controller.signal.aborted) {
@@ -296,8 +322,68 @@ async function loadRestaurants(reset = false) {
     if (!controller.signal.aborted) {
       state.loading = false;
       render();
+      refreshIfDue();
     }
   }
+}
+
+function scheduleRefresh() {
+  clearTimeout(refreshTimer);
+  refreshDueAt = Date.now() + REFRESH_INTERVAL;
+  refreshTimer = setTimeout(refreshRestaurants, REFRESH_INTERVAL);
+}
+
+function refreshIfDue() {
+  if (refreshDueAt && Date.now() >= refreshDueAt) {
+    void refreshRestaurants();
+  }
+}
+
+async function refreshRestaurants() {
+  if (!state.address || !state.pageCount || state.loading || refreshController) {
+    return;
+  }
+
+  clearTimeout(refreshTimer);
+  const addressId = state.address.id;
+  const controller = new AbortController();
+  refreshController = controller;
+  renderFreshness();
+
+  try {
+    const page = await getRestaurantPages(addressId, state.pageCount, controller.signal);
+    if (!controller.signal.aborted && state.address?.id === addressId) {
+      acceptPage(page, true);
+      state.pageCount = page.pageCount;
+      state.error = "";
+      render();
+    }
+  } catch {
+    if (!controller.signal.aborted) {
+      state.refreshFailed = true;
+    }
+  } finally {
+    if (refreshController === controller) {
+      refreshController = null;
+      scheduleRefresh();
+      renderFreshness();
+    }
+  }
+}
+
+function renderFreshness() {
+  const updated = state.refreshedAt
+    ? new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit" }).format(state.refreshedAt)
+    : "";
+  let text = `Updated at ${updated}. Refreshes every 5 minutes. Availability and final fees may change at checkout.`;
+  if (refreshController) {
+    text = "Refreshing availability… Your current results stay visible.";
+  } else if (state.refreshFailed) {
+    text = `Couldn’t refresh availability. Showing results from ${updated}; retrying in 5 minutes.`;
+  }
+
+  $("freshness").textContent = text;
+  $("freshness").hidden = state.restaurants.length === 0;
 }
 
 function icon(kind) {
@@ -450,7 +536,7 @@ function render() {
   $("load-more").hidden = !state.hasMore;
   $("load-more").disabled = state.loading;
   $("load-more").firstChild.textContent = state.loading ? "Loading restaurants… " : "Load more restaurants ";
-  $("freshness").hidden = state.restaurants.length === 0;
+  renderFreshness();
   $("clear-vendor-search").hidden = filters.query.length === 0;
 
   if (state.address) {
@@ -564,7 +650,12 @@ function refreshHours() {
 }
 
 setInterval(refreshHours, 60000);
-document.addEventListener("visibilitychange", refreshHours);
+document.addEventListener("visibilitychange", () => {
+  refreshHours();
+  if (!document.hidden) {
+    refreshIfDue();
+  }
+});
 
 restoreFilters();
 const lastAddress = readLastAddress();

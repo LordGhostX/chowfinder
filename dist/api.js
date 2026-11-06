@@ -8,7 +8,7 @@ const HEADERS = {
   "x-app-version": "3.0.7",
 };
 
-async function request(path, { params = {}, body, signal } = {}) {
+async function request(path, { params = {}, body, signal, cache } = {}) {
   const url = new URL(path, BASE_URL);
   for (const [key, value] of Object.entries(params)) {
     if (value !== null && value !== undefined) {
@@ -21,6 +21,7 @@ async function request(path, { params = {}, body, signal } = {}) {
     response = await fetch(url, {
       method: body ? "POST" : "GET",
       credentials: "omit",
+      cache,
       headers: body ? { ...HEADERS, "Content-Type": "application/json" } : HEADERS,
       body: body ? JSON.stringify(body) : undefined,
       signal: AbortSignal.any([signal, AbortSignal.timeout(20000)]),
@@ -110,6 +111,7 @@ export async function selectAddress(placeId, signal) {
 export async function getRestaurants(addressId, cursor, signal) {
   const payload = await request("/customer/vendor/v2", {
     signal,
+    cache: "no-store",
     params: {
       address_id: addressId,
       vendor_type: "restaurant",
@@ -127,4 +129,25 @@ export async function getRestaurants(addressId, cursor, signal) {
     hasMore: payload.meta.has_more,
     cursor: payload.meta.has_more ? payload.meta.next_cursor : null,
   };
+}
+
+export async function getRestaurantPages(addressId, pageCount, signal) {
+  const restaurants = [];
+  let page;
+  let cursor = null;
+  let fetched = 0;
+
+  while (fetched < pageCount) {
+    signal.throwIfAborted();
+    page = await getRestaurants(addressId, cursor, signal);
+    restaurants.push(...page.restaurants);
+    cursor = page.cursor;
+    fetched += 1;
+    if (!page.hasMore) {
+      break;
+    }
+  }
+
+  signal.throwIfAborted();
+  return { restaurants, hasMore: page.hasMore, cursor, pageCount: fetched };
 }

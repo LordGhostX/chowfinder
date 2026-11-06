@@ -31,13 +31,15 @@ Enter an address and choose a search suggestion. Search restaurant names by subs
 
 **Most reviewed** sorts by review count. **Largest discount** sorts by the biggest active, published percentage offer on selected items, excluding expired or future-published offers. Cash discounts and text-only offers have no comparable percentage and sort after percentage offers.
 
-Cards show scheduled closing times in the delivery country's local time (Nigeria or Ghana), including overnight service from the previous day. Day-specific hours take precedence over default hours. **Stays open for at least** requires an open, available restaurant with a known active schedule and at least the selected time remaining. Missing or invalid hours and schedules that do not cover the current time are excluded from this filter. Time-based results update every minute while the page is visible and when returning to it; this does not make additional API requests. Closing hours are scheduled times and do not guarantee availability until then.
+Cards show scheduled closing times in the delivery country's local time (Nigeria or Ghana), including overnight service from the previous day. Day-specific hours take precedence over default hours. **Stays open for at least** requires an open, available restaurant with a known active schedule and at least the selected time remaining. Missing or invalid hours and schedules that do not cover the current time are excluded from this filter. Closing-time calculations update every minute while the page is visible and when returning to it, independently of API refreshes. Closing hours are scheduled times and do not guarantee availability until then.
 
 ## Data and browser storage
 
 The browser calls Chowdeck's guest endpoints directly. Selecting an address sends the same address-selection POST as the storefront. No login or API key is used.
 
 The last selected address ID, label and country are saved in this browser's local storage. Revisits reuse that address without repeating the address lookup or selection request, and fetch fresh restaurant listings. Browser storage must be enabled to remember the address and preferences. Restaurant availability and final fees can change at checkout.
+
+Restaurant results are cached in memory while the page is open and refreshed in the background every five minutes. Refreshes fetch the same number of pages already loaded, starting with a fresh pagination cursor, and replace the cached results only after the whole refresh succeeds. Your address, filters and sorting stay selected. Failed refreshes keep the previous results and retry after five minutes; the note below the cards shows the last update or refresh failure. Changing addresses or loading more cancels an in-flight refresh. If a browser delays a background timer, returning to the tab triggers an overdue refresh. These are listing GET requests; refreshing does not repeat address selection.
 
 ## Development checks
 

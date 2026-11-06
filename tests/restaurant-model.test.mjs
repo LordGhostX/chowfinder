@@ -26,7 +26,6 @@ const vendor = (changes = {}) => normalizeVendor({
 const preferences = {
   rating: 4,
   fee: 1000,
-  time: 30,
   discounts: true,
   open: true,
   chowpass: true,
@@ -34,12 +33,11 @@ const preferences = {
   query: "restaurant",
 };
 
-test("name search and all seven preferences compose, with inclusive fee and time limits", () => {
+test("name search composes with restaurant filters and an inclusive fee limit", () => {
   const matching = vendor();
   const others = [
     vendor({ id: 2, average_rating: "3.99" }),
     vendor({ id: 3, delivery_price: 100001 }),
-    vendor({ id: 4, maximum_delivery_time: 31 }),
     vendor({ id: 5, discount_text: "" }),
     vendor({ id: 6, is_open: false }),
     vendor({ id: 7, is_chowpass_vendor: false }),
@@ -82,10 +80,9 @@ test("an open kitchen that is temporarily unavailable is excluded by open now", 
 });
 
 test("unknown values never pass specific limits; free delivery is a real filter", () => {
-  const unknown = vendor({ average_rating: null, delivery_price: null, maximum_delivery_time: null });
+  const unknown = vendor({ average_rating: null, delivery_price: null });
   assert.equal(filterRestaurants([unknown], { rating: 4 }).length, 0);
   assert.equal(filterRestaurants([unknown], { fee: 0 }).length, 0);
-  assert.equal(filterRestaurants([unknown], { time: 30 }).length, 0);
   assert.equal(filterRestaurants([vendor({ delivery_price: 0 }), vendor()], { fee: 0 }).length, 1);
 });
 

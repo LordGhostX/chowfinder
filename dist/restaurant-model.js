@@ -163,10 +163,6 @@ export function filterRestaurants(restaurants, preferences, clock = localClock()
       return false;
     }
 
-    if (preferences.time !== null && preferences.time !== undefined && (restaurant.maxTime === null || restaurant.maxTime > preferences.time)) {
-      return false;
-    }
-
     if (preferences.discounts && !restaurant.hasDiscount) {
       return false;
     }

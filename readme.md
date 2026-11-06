@@ -18,7 +18,6 @@ Enter an address and choose a search suggestion. Search restaurant names by subs
 
 - Minimum rating
 - Maximum delivery fee
-- Maximum estimated delivery time
 - Minimum time before closing: 30 minutes, 1 hour, 2 hours, 3 hours or 4 hours
 - Discounts
 - Open and available now

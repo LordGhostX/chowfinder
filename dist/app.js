@@ -66,7 +66,6 @@ function restoreFilters() {
 
     for (const [key, id] of [
       ["fee", "fee-filter"],
-      ["time", "time-filter"],
       ["closing", "closing-filter"],
       ["sort", "sort-order"],
     ]) {
@@ -136,7 +135,6 @@ function preferences() {
   return {
     rating: Number(document.querySelector('input[name="rating"]:checked').value),
     fee: $("fee-filter").value === "" ? null : Number($("fee-filter").value),
-    time: $("time-filter").value === "" ? null : Number($("time-filter").value),
     closing: $("closing-filter").value === "" ? null : Number($("closing-filter").value),
     discounts: $("discount-filter").checked,
     open: $("open-filter").checked,
@@ -509,7 +507,6 @@ function renderChips(filters) {
   const labels = [];
   if (filters.rating) labels.push(`${filters.rating}+ stars`);
   if (filters.fee !== null) labels.push(filters.fee === 0 ? "Free delivery" : `Delivery ≤ ${money(filters.fee * 100)}`);
-  if (filters.time !== null) labels.push(`Within ${filters.time} mins`);
   if (filters.closing !== null) labels.push(`Open for ≥ ${$("closing-filter").selectedOptions[0].textContent}`);
   if (filters.discounts) labels.push("With discounts");
   if (filters.open) labels.push("Open now");

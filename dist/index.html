@@ -108,6 +108,16 @@
               </label>
             </div>
           </form>
+          <div class="settings-transfer" aria-label="Back up your settings">
+            <h3>Your settings, to go</h3>
+            <p id="settings-help">Your address, preferences, favourites and hidden vendors. Import replaces your saved settings.</p>
+            <div class="settings-buttons">
+              <button type="button" id="export-settings" aria-describedby="settings-help">Export JSON <span aria-hidden="true">↓</span></button>
+              <button type="button" id="import-settings" aria-describedby="settings-help">Import JSON <span aria-hidden="true">↑</span></button>
+            </div>
+            <input type="file" id="settings-file" accept=".json,application/json" aria-label="Import Chowfinder settings JSON" hidden />
+            <p id="settings-status" class="settings-status" role="status"></p>
+          </div>
         </aside>
 
         <section class="results" aria-labelledby="results-heading" aria-busy="false">
@@ -155,6 +165,10 @@
     <div id="hidden-notice" class="hidden-notice" hidden>
       <p id="hidden-notice-text" role="status"></p>
       <button type="button" id="undo-hide">Undo</button>
+    </div>
+    <div id="settings-notice" class="hidden-notice settings-notice" hidden>
+      <p id="settings-notice-text" role="status"></p>
+      <button type="button" id="dismiss-settings-notice" aria-label="Dismiss settings confirmation">Dismiss</button>
     </div>
   </body>
 </html>

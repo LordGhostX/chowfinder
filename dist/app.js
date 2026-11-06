@@ -1,5 +1,6 @@
 import { getRestaurantPages, getRestaurants, searchAddresses, selectAddress } from "./api.js";
 import { FoodSearch } from "./food-search.js";
+import { createSettingsBackup, parseSettingsBackup, saveSettingsBackup, SETTINGS_KEYS } from "./settings-backup.js";
 import {
   closingWindow,
   filterRestaurants,
@@ -11,10 +12,10 @@ import {
 } from "./restaurant-model.js";
 
 const $ = (id) => document.getElementById(id);
-const LAST_ADDRESS_KEY = "chowfinder.lastAddress";
-const FILTERS_KEY = "chowfinder.filters";
-const FAVOURITES_KEY = "chowfinder.favourites";
-const HIDDEN_KEY = "chowfinder.hiddenVendors";
+const LAST_ADDRESS_KEY = SETTINGS_KEYS.address;
+const FILTERS_KEY = SETTINGS_KEYS.preferences;
+const FAVOURITES_KEY = SETTINGS_KEYS.favourites;
+const HIDDEN_KEY = SETTINGS_KEYS.hiddenVendors;
 const REFRESH_INTERVAL = 5 * 60 * 1000;
 const state = {
   address: null,
@@ -45,6 +46,8 @@ let refreshTimer;
 let refreshDueAt = 0;
 let undoHiddenId = null;
 let undoTimer;
+let settingsNoticeTimer;
+let settingsNoticeButton = "export-settings";
 
 function readVendorIds(key) {
   try {
@@ -188,6 +191,73 @@ function rememberFilters() {
     localStorage.setItem(FILTERS_KEY, JSON.stringify({ ...preferences(), sort: $("sort-order").value, searchMode: state.searchMode }));
   } catch {
     // Filtering still works when browser storage is unavailable.
+  }
+}
+
+function settingsStatus(message, error = false) {
+  $("settings-status").textContent = message;
+  $("settings-status").classList.toggle("is-error", error);
+}
+
+function closeSettingsNotice() {
+  clearTimeout(settingsNoticeTimer);
+  const dismissFocused = document.activeElement === $("dismiss-settings-notice");
+  $("settings-notice").hidden = true;
+  if (dismissFocused) {
+    $(settingsNoticeButton).focus();
+  }
+}
+
+function showSettingsNotice(message, button = "export-settings") {
+  clearTimeout(settingsNoticeTimer);
+  settingsNoticeButton = button;
+  $("settings-notice-text").textContent = message;
+  $("settings-notice").hidden = false;
+  settingsNoticeTimer = setTimeout(closeSettingsNotice, 5000);
+}
+
+function exportSettings() {
+  const backup = createSettingsBackup({
+    address: state.address ?? readLastAddress(),
+    preferences: { ...preferences(), sort: $("sort-order").value, searchMode: state.searchMode },
+    favourites: [...state.favourites],
+    hiddenVendors: [...state.hidden],
+  });
+  const blob = new Blob([JSON.stringify(backup, null, 2) + "\n"], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const download = document.createElement("a");
+  download.href = url;
+  download.download = `chowfinder-settings-${backup.exportedAt.slice(0, 10)}.json`;
+  document.body.append(download);
+  download.click();
+  download.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  settingsStatus("");
+  showSettingsNotice("Settings exported. Keep the JSON file to restore them later.");
+}
+
+async function importSettings(file) {
+  if (!file) {
+    return;
+  }
+
+  $("import-settings").disabled = true;
+  settingsStatus("Reading your settings…");
+  try {
+    const settings = parseSettingsBackup(await file.text());
+    try {
+      saveSettingsBackup(localStorage, settings);
+    } catch {
+      throw new Error("Couldn’t save the import. Check that browser storage is enabled and has space, then try again.");
+    }
+
+    settingsStatus("Settings imported. Reloading with fresh results…");
+    window.history.replaceState({ settingsImported: true }, "");
+    window.location.reload();
+  } catch (error) {
+    settingsStatus(error instanceof Error ? error.message : "Couldn’t read this settings file. Try again.", true);
+  } finally {
+    $("import-settings").disabled = false;
   }
 }
 
@@ -972,6 +1042,14 @@ $("reset-filters").addEventListener("click", () => {
   rememberFilters();
   if (!syncFoodSearch()) render();
 });
+$("export-settings").addEventListener("click", exportSettings);
+$("dismiss-settings-notice").addEventListener("click", closeSettingsNotice);
+$("import-settings").addEventListener("click", () => $("settings-file").click());
+$("settings-file").addEventListener("change", (event) => {
+  const file = event.target.files[0];
+  event.target.value = "";
+  void importSettings(file);
+});
 $("load-more").addEventListener("click", () => loadRestaurants());
 $("retry-button").addEventListener("click", () => {
   if (showingFood() && state.address) {
@@ -1003,4 +1081,9 @@ if (lastAddress) {
   loadRestaurants(true);
 } else {
   render();
+}
+
+if (window.history.state?.settingsImported) {
+  window.history.replaceState(null, "");
+  showSettingsNotice("Settings imported. Your preferences are ready to go.", "import-settings");
 }

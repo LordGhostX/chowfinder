@@ -14,7 +14,7 @@ The website has no runtime package dependencies or build step. Python 3 serves t
 
 ## Filter and sort vendors
 
-Enter an address and choose a search suggestion. The shared search bar has **Vendors** and **Food** modes and keeps your text when you switch. **Vendors** searches loaded vendor names by substring, ignoring case and surrounding spaces. **Food** searches restaurant menus through Chowdeck's API and displays matching items with photos, prices, stock status and their vendors. The query and search mode are remembered alongside your filters. **Clear** removes just the search; **Reset** clears the search and restores the default filters. Available filters are:
+Enter an address and choose a search suggestion. The shared search bar has **Vendors** and **Food** modes and keeps your text when you switch. **Vendors** searches loaded vendor names by substring, ignoring case and surrounding spaces. **Food** searches restaurant menus through Chowdeck's API and displays matching items with photos, prices, stock status and their vendors. The query and search mode are remembered alongside your filters. **Clear** removes just the search; **Reset** clears the search and random pick, and restores the default filters. Available filters are:
 
 - Minimum rating
 - Maximum delivery fee

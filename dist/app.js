@@ -961,6 +961,7 @@ $("clear-vendor-search").addEventListener("click", () => {
 $("reset-filters").addEventListener("click", () => {
   $("filter-form").reset();
   $("vendor-search").value = "";
+  state.pickId = null;
   rememberFilters();
   if (!syncFoodSearch()) render();
 });

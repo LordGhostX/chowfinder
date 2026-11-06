@@ -14,7 +14,7 @@ The website has no runtime package dependencies or build step. Python 3 serves t
 
 ## Filter and sort restaurants
 
-Enter an address and choose a search suggestion. Available filters are:
+Enter an address and choose a search suggestion. Search restaurant names by substring; matching ignores case and surrounding spaces. The search works alongside the other filters and is remembered with them. **Clear** removes just the search; **Reset** clears the search and restores the default filters. Available filters are:
 
 - Minimum rating
 - Maximum delivery fee

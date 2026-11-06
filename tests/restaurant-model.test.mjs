@@ -31,9 +31,10 @@ const preferences = {
   open: true,
   chowpass: true,
   verified: true,
+  query: "restaurant",
 };
 
-test("all seven preferences compose, with inclusive fee and time limits", () => {
+test("name search and all seven preferences compose, with inclusive fee and time limits", () => {
   const matching = vendor();
   const others = [
     vendor({ id: 2, average_rating: "3.99" }),
@@ -45,9 +46,22 @@ test("all seven preferences compose, with inclusive fee and time limits", () => 
     vendor({ id: 8, is_chowpass_vendor: undefined }),
     vendor({ id: 9, verification_status: "pending" }),
     vendor({ id: 10, verification_status: undefined }),
+    vendor({ id: 11, name: "Another kitchen" }),
   ];
 
   assert.deepEqual(filterRestaurants([matching, ...others], preferences), [matching]);
+});
+
+test("name search matches literal substrings regardless of case and trims the query", () => {
+  const restaurants = [
+    vendor({ id: 1, name: "FoLiXx Bukka" }),
+    vendor({ id: 2, name: "Bukka Hut" }),
+    vendor({ id: 3, name: "The Place" }),
+  ];
+
+  assert.deepEqual(filterRestaurants(restaurants, { query: "  uKk  " }).map((item) => item.id), [1, 2]);
+  assert.deepEqual(filterRestaurants(restaurants, { query: ".*" }), []);
+  assert.deepEqual(filterRestaurants(restaurants, { query: "   " }), restaurants);
 });
 
 test("closest sorts numeric distances, includes zero, and places missing distances last", () => {

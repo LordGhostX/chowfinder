@@ -51,7 +51,13 @@ export function normalizeVendor(raw) {
 }
 
 export function filterRestaurants(restaurants, preferences) {
+  const query = (preferences.query ?? "").trim().toLowerCase();
+
   return restaurants.filter((restaurant) => {
+    if (query && !restaurant.name.toLowerCase().includes(query)) {
+      return false;
+    }
+
     if (preferences.rating > 0 && (restaurant.rating === null || restaurant.rating < preferences.rating)) {
       return false;
     }

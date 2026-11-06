@@ -73,6 +73,10 @@ function restoreFilters() {
         $(id).checked = saved[key];
       }
     }
+
+    if (typeof saved.query === "string") {
+      $("vendor-search").value = saved.query.slice(0, $("vendor-search").maxLength);
+    }
   } catch {
     // Keep the default filters when saved preferences cannot be read.
   }
@@ -124,6 +128,7 @@ function preferences() {
     open: $("open-filter").checked,
     chowpass: $("chowpass-filter").checked,
     verified: $("verified-filter").checked,
+    query: $("vendor-search").value,
   };
 }
 
@@ -410,6 +415,7 @@ function render() {
   $("load-more").disabled = state.loading;
   $("load-more").firstChild.textContent = state.loading ? "Loading restaurants… " : "Load more restaurants ";
   $("freshness").hidden = state.restaurants.length === 0;
+  $("clear-vendor-search").hidden = filters.query.length === 0;
 
   if (state.address) {
     $("results-heading").textContent = "Restaurants near you";
@@ -419,10 +425,17 @@ function render() {
       : `All ${state.restaurants.length} restaurants loaded. You’re seeing every match.`;
 
     if (!matches.length && !state.loading && !state.error) {
-      const title = state.restaurants.length ? "A little too particular?" : "No restaurants here just yet.";
-      const message = state.restaurants.length
-        ? state.hasMore ? "Try relaxing a filter, or load more restaurants below." : "Try relaxing a filter to find something good."
-        : "Try a nearby street or a different delivery address.";
+      const searching = filters.query.trim().length > 0;
+      let title = "No restaurants here just yet.";
+      let message = "Try a nearby street or a different delivery address.";
+      if (state.restaurants.length) {
+        title = searching ? "No restaurants match that search." : "A little too particular?";
+        message = searching ? "Try a different name or relax a filter." : "Try relaxing a filter to find something good.";
+        if (state.hasMore) {
+          message += " You can also load more restaurants below.";
+        }
+      }
+
       const heading = element("h3", "", title);
       const description = element("p", "", message);
       $("empty-state").replaceChildren(heading, description);
@@ -489,8 +502,19 @@ $("sort-order").addEventListener("change", () => {
   rememberFilters();
   render();
 });
+$("vendor-search").addEventListener("input", () => {
+  rememberFilters();
+  render();
+});
+$("clear-vendor-search").addEventListener("click", () => {
+  $("vendor-search").value = "";
+  rememberFilters();
+  render();
+  $("vendor-search").focus();
+});
 $("reset-filters").addEventListener("click", () => {
   $("filter-form").reset();
+  $("vendor-search").value = "";
   rememberFilters();
   render();
 });

@@ -17,6 +17,14 @@ function imageUrl(value) {
 }
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const VENDOR_CATEGORIES = new Map([
+  ["restaurant", "restaurants"],
+  ["supermarket", "supermarkets"],
+  ["pharmacy", "pharmacies"],
+  ["local-market", "local-market"],
+  ["chowstore", "chowstore"],
+  ["herbal", "herbal"],
+]);
 
 function scheduleTime(value, allowMidnight = false) {
   const valueText = typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
@@ -113,21 +121,26 @@ export function closingWindow(restaurant, clock) {
 
 export function normalizeVendor(raw) {
   if (!raw || !Number.isSafeInteger(raw.id) || typeof raw.name !== "string") {
-    throw new Error("Chowdeck returned an unexpected restaurant format. Please try again.");
+    throw new Error("Chowdeck returned an unexpected vendor format. Please try again.");
   }
 
   const location = typeof raw.location === "string" ? raw.location : "";
   const slug = typeof raw.slug === "string" ? raw.slug : "";
   const rating = numberOrNull(raw.average_rating);
   const image = raw.cover_images?.find((item) => typeof item?.path === "string")?.path;
+  const category = VENDOR_CATEGORIES.get(raw.vendor_type);
+  let url = "https://chowdeck.com/store";
+  if (category === "chowstore") {
+    url += "/chowstore";
+  } else if (category && location && slug) {
+    url += `/${encodeURIComponent(location.replaceAll(" ", "-").toLowerCase())}/${category}/${encodeURIComponent(slug)}`;
+  }
 
   return {
     id: raw.id,
     name: raw.name,
     location,
-    url: location && slug
-      ? `https://chowdeck.com/store/${encodeURIComponent(location.replaceAll(" ", "-").toLowerCase())}/restaurants/${encodeURIComponent(slug)}`
-      : "https://chowdeck.com/store",
+    url,
     image: imageUrl(image) || imageUrl(raw.logo_url),
     rating: rating !== null && rating <= 5 ? rating : null,
     reviewCount: numberOrNull(raw.number_of_rating) ?? 0,

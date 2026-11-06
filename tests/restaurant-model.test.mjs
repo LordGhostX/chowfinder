@@ -62,6 +62,16 @@ test("name search matches literal substrings regardless of case and trims the qu
   assert.deepEqual(filterRestaurants(restaurants, { query: "   " }), restaurants);
 });
 
+test("vendor links use the correct Chowdeck category for each supported type", () => {
+  const base = "https://chowdeck.com/store/lekki-phase-1/";
+  assert.equal(vendor().url, `${base}restaurants/a-restaurant`);
+  assert.equal(vendor({ vendor_type: "supermarket" }).url, `${base}supermarkets/a-restaurant`);
+  assert.equal(vendor({ vendor_type: "pharmacy" }).url, `${base}pharmacies/a-restaurant`);
+  assert.equal(vendor({ vendor_type: "local-market" }).url, `${base}local-market/a-restaurant`);
+  assert.equal(vendor({ vendor_type: "chowstore" }).url, "https://chowdeck.com/store/chowstore");
+  assert.equal(vendor({ vendor_type: "another-type" }).url, "https://chowdeck.com/store");
+});
+
 test("closest sorts numeric distances, includes zero, and places missing distances last", () => {
   const original = [
     vendor({ id: 1, distance: "10" }),

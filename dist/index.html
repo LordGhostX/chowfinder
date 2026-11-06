@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f7f6f2" />
-    <meta name="description" content="Find Chowdeck restaurants near your address. Compare ratings, delivery fees, delivery times, discounts and availability." />
+    <meta name="description" content="Find Chowdeck vendors near your address. Compare ratings, delivery fees, delivery times, discounts and availability." />
     <title>Chowfinder — Find your next good meal</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='20' fill='%23df4b2e'/%3E%3Cpath d='M15 34h34a17 17 0 01-34 0M20 23h24M24 16v7m8-7v7m8-7v7' fill='none' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
     <link rel="stylesheet" href="/styles.css" />
@@ -24,7 +24,7 @@
         <div>
           <p class="eyebrow">LESS SCROLLING. MORE EATING.</p>
           <h1 id="page-title">Find your next <em>good meal.</em></h1>
-          <p class="intro-copy">The restaurants around you. Just the way you like them.</p>
+          <p class="intro-copy">The vendors around you. Just the way you like them.</p>
         </div>
         <div class="intro-stamp" aria-hidden="true"><span>GOOD FOOD</span><svg viewBox="0 0 64 64"><path d="M14 32h36a18 18 0 0 1-36 0ZM20 22h24M26 12v9m12-9v9M23 53h18" /></svg><span>YOUR RULES</span></div>
       </section>
@@ -71,7 +71,7 @@
             </fieldset>
             <div class="toggle-group">
               <label class="toggle-row" for="discount-filter">
-                <span><strong>A little deal, please</strong><small>Restaurants with discounts</small></span>
+                <span><strong>A little deal, please</strong><small>Vendors with discounts</small></span>
                 <input type="checkbox" id="discount-filter" role="switch" />
                 <span class="toggle-track" aria-hidden="true"></span>
               </label>
@@ -81,12 +81,12 @@
                 <span class="toggle-track" aria-hidden="true"></span>
               </label>
               <label class="toggle-row" for="chowpass-filter">
-                <span><strong>Pass me the perks</strong><small>Chowpass restaurants only</small></span>
+                <span><strong>Pass me the perks</strong><small>Chowpass vendors only</small></span>
                 <input type="checkbox" id="chowpass-filter" role="switch" />
                 <span class="toggle-track" aria-hidden="true"></span>
               </label>
               <label class="toggle-row" for="verified-filter">
-                <span><strong>Trust issues welcome</strong><small>Verified restaurants only</small></span>
+                <span><strong>Trust issues welcome</strong><small>Verified vendors only</small></span>
                 <input type="checkbox" id="verified-filter" role="switch" checked />
                 <span class="toggle-track" aria-hidden="true"></span>
               </label>
@@ -99,32 +99,32 @@
           <div class="results-toolbar">
             <div><h2 id="results-heading">Your next meal starts here</h2><p id="results-summary" role="status" aria-live="polite">Pick an address to see what’s nearby.</p></div>
             <div class="results-actions">
-              <button type="button" id="pick-for-me" class="secondary-button pick-button" title="Choose randomly from loaded restaurants matching your filters" disabled><span aria-hidden="true">✳</span> Pick for me</button>
-              <label class="sort-wrap"><span>Sort by</span><select id="sort-order" aria-label="Sort restaurants"><option value="recommended">Recommended</option><option value="distance">Closest</option><option value="rating">Highest rated</option><option value="reviews">Most reviewed</option><option value="discount">Largest discount</option><option value="fee">Lowest delivery fee</option><option value="time">Fastest delivery</option></select></label>
+              <button type="button" id="pick-for-me" class="secondary-button pick-button" title="Choose randomly from loaded vendors matching your filters" disabled><span aria-hidden="true">✳</span> Pick for me</button>
+              <label class="sort-wrap"><span>Sort by</span><select id="sort-order" aria-label="Sort vendors"><option value="recommended">Recommended</option><option value="distance">Closest</option><option value="rating">Highest rated</option><option value="reviews">Most reviewed</option><option value="discount">Largest discount</option><option value="fee">Lowest delivery fee</option><option value="time">Fastest delivery</option></select></label>
             </div>
           </div>
           <p id="discount-sort-note" class="sort-note" hidden>Ranked by the largest active percentage off selected items. Offer conditions may apply.</p>
-          <div class="vendor-search" role="search" aria-label="Search loaded restaurants">
+          <div class="vendor-search" role="search" aria-label="Search loaded vendors">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg>
-            <label class="sr-only" for="vendor-search">Search restaurants by name</label>
-            <input id="vendor-search" type="search" placeholder="Search restaurants by name…" autocomplete="off" maxlength="120" aria-describedby="vendor-search-help" />
-            <button type="button" id="clear-vendor-search" aria-label="Clear restaurant search" hidden>Clear</button>
+            <label class="sr-only" for="vendor-search">Search vendors by name</label>
+            <input id="vendor-search" type="search" placeholder="Search vendors by name…" autocomplete="off" maxlength="120" aria-describedby="vendor-search-help" />
+            <button type="button" id="clear-vendor-search" aria-label="Clear vendor search" hidden>Clear</button>
           </div>
-          <p id="vendor-search-help" class="vendor-search-help">Searches the restaurants you’ve loaded.</p>
+          <p id="vendor-search-help" class="vendor-search-help">Searches the vendors you’ve loaded.</p>
           <div id="active-filters" class="active-filters" aria-label="Active preferences" hidden></div>
           <p id="pick-result" class="pick-result" role="status" hidden></p>
           <div id="results-error" class="results-error" role="alert" hidden><div><strong>Something got in the way.</strong><p id="results-error-text"></p></div><button id="retry-button" type="button" class="secondary-button">Try again</button></div>
           <div id="empty-state" class="empty-state"><div class="empty-illustration" aria-hidden="true"><div class="plate"><span>✳</span></div><div class="fork">≡</div><div class="spoon"></div><span class="crumb crumb-one">✦</span><span class="crumb crumb-two">✦</span></div><p class="eyebrow">SOMETHING GOOD IS CLOSE BY</p><h3>First, where should we look?</h3><p>Enter your address above. We’ll bring the options.<br />You bring the appetite.</p><button type="button" id="example-address" class="example-button">Try Lekki Phase 1 <span aria-hidden="true">↗</span></button></div>
           <div id="loading-state" class="loading-state" hidden><span class="spinner" aria-hidden="true"></span><p>Finding the good stuff nearby…</p></div>
           <div id="restaurant-grid" class="restaurant-grid"></div>
-          <div id="pagination" class="pagination" hidden><button type="button" id="load-more" class="secondary-button">Load more restaurants <span aria-hidden="true">↓</span></button><p id="pagination-note"></p></div>
+          <div id="pagination" class="pagination" hidden><button type="button" id="load-more" class="secondary-button">Load more vendors <span aria-hidden="true">↓</span></button><p id="pagination-note"></p></div>
           <p class="freshness" id="freshness" role="status" hidden>Refreshes every 5 minutes. Availability and final fees may change at checkout.</p>
         </section>
       </div>
     </main>
     <footer class="footer">
       <span class="footer-brand">chowfinder.</span>
-      <p>An independent way to explore Chowdeck restaurants.</p>
+      <p>An independent way to explore Chowdeck vendors.</p>
       <a class="footer-link" href="https://chowdeck.com/store" target="_blank" rel="noopener noreferrer">Find it here. Order on Chowdeck. <span aria-hidden="true">↗</span></a>
     </footer>
   </body>

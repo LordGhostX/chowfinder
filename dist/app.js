@@ -498,7 +498,7 @@ function card(restaurant, clock) {
   closing.title = `Scheduled hours in ${state.currency === "GHS" ? "Ghana" : "Nigeria"} local time. Availability may change.`;
   const availability = element("div", "card-availability");
   availability.append(status, closing);
-  body.append(titleRow, element("p", "card-area", restaurant.location || "Restaurant"), stats, availability);
+  body.append(titleRow, element("p", "card-area", restaurant.location || "Vendor"), stats, availability);
   article.append(imageLink, body);
   return article;
 }
@@ -562,26 +562,26 @@ function render() {
   $("pagination").hidden = !state.address || state.restaurants.length === 0 || (!state.hasMore && matches.length === 0);
   $("load-more").hidden = !state.hasMore;
   $("load-more").disabled = state.loading;
-  $("load-more").firstChild.textContent = state.loading ? "Loading restaurants… " : "Load more restaurants ";
+  $("load-more").firstChild.textContent = state.loading ? "Loading vendors… " : "Load more vendors ";
   renderFreshness();
   $("clear-vendor-search").hidden = filters.query.length === 0;
 
   if (state.address) {
-    $("results-heading").textContent = "Restaurants near you";
-    $("results-summary").textContent = `${matches.length} ${matches.length === 1 ? "match" : "matches"} · ${state.restaurants.length} restaurants loaded`;
+    $("results-heading").textContent = "Vendors near you";
+    $("results-summary").textContent = `${matches.length} ${matches.length === 1 ? "match" : "matches"} · ${state.restaurants.length} vendors loaded`;
     $("pagination-note").textContent = state.hasMore
-      ? `Filters apply to ${state.restaurants.length} loaded restaurants. There are more to explore.`
-      : `All ${state.restaurants.length} restaurants loaded. You’re seeing every match.`;
+      ? `Filters apply to ${state.restaurants.length} loaded vendors. There are more to explore.`
+      : `All ${state.restaurants.length} vendors loaded. You’re seeing every match.`;
 
     if (!matches.length && !state.loading && !state.error) {
       const searching = filters.query.trim().length > 0;
-      let title = "No restaurants here just yet.";
+      let title = "No vendors here just yet.";
       let message = "Try a nearby street or a different delivery address.";
       if (state.restaurants.length) {
-        title = searching ? "No restaurants match that search." : "A little too particular?";
+        title = searching ? "No vendors match that search." : "A little too particular?";
         message = searching ? "Try a different name or relax a filter." : "Try relaxing a filter to find something good.";
         if (state.hasMore) {
-          message += " You can also load more restaurants below.";
+          message += " You can also load more vendors below.";
         }
       }
 

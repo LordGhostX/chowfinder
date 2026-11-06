@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getRestaurantPages } from "../dist/api.js";
+import { getRestaurantPages, getRestaurants } from "../dist/api.js";
 
 function response(id, hasMore, cursor = null) {
   return {
@@ -12,6 +12,22 @@ function response(id, hasMore, cursor = null) {
     }),
   };
 }
+
+test("vendor listing requests no type restriction and retains every returned vendor type", async (t) => {
+  const types = ["restaurant", "supermarket", "pharmacy", "another-type", undefined];
+  const fetch = t.mock.method(globalThis, "fetch", async () => ({
+    ok: true,
+    json: async () => ({
+      data: types.map((type, index) => ({ id: index + 1, name: `Vendor ${index + 1}`, vendor_type: type })),
+      meta: { has_more: false },
+    }),
+  }));
+
+  const result = await getRestaurants(18957, null, new AbortController().signal);
+
+  assert.equal(fetch.mock.calls[0].arguments[0].searchParams.has("vendor_type"), false);
+  assert.deepEqual(result.restaurants.map((item) => item.id), [1, 2, 3, 4, 5]);
+});
 
 test("refresh starts at the first page and follows fresh cursors for the loaded page count", async (t) => {
   const calls = [];

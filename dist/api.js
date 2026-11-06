@@ -114,18 +114,17 @@ export async function getRestaurants(addressId, cursor, signal) {
     cache: "no-store",
     params: {
       address_id: addressId,
-      vendor_type: "restaurant",
       page_size: 100,
       next_cursor: cursor,
     },
   });
 
   if (!Array.isArray(payload.data) || typeof payload.meta?.has_more !== "boolean" || (payload.meta.has_more && typeof payload.meta.next_cursor !== "string")) {
-    throw new Error("Chowdeck returned an unexpected restaurant list. Please try again.");
+    throw new Error("Chowdeck returned an unexpected vendor list. Please try again.");
   }
 
   return {
-    restaurants: payload.data.filter((item) => item.vendor_type === "restaurant").map(normalizeVendor),
+    restaurants: payload.data.map(normalizeVendor),
     hasMore: payload.meta.has_more,
     cursor: payload.meta.has_more ? payload.meta.next_cursor : null,
   };

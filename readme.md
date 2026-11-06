@@ -1,6 +1,6 @@
 # Chowfinder
 
-Explore Chowdeck restaurants near an address and filter them by your preferences.
+Explore Chowdeck vendors near an address and filter them by your preferences.
 
 ## Run locally
 
@@ -12,9 +12,9 @@ npm run dev
 
 The website has no runtime package dependencies or build step. Python 3 serves the static `dist` directory; Node.js runs the development checks.
 
-## Filter and sort restaurants
+## Filter and sort vendors
 
-Enter an address and choose a search suggestion. Search restaurant names by substring; matching ignores case and surrounding spaces. The search works alongside the other filters and is remembered with them. **Clear** removes just the search; **Reset** clears the search and restores the default filters. Available filters are:
+Enter an address and choose a search suggestion. Search vendor names by substring; matching ignores case and surrounding spaces. The search works alongside the other filters and is remembered with them. **Clear** removes just the search; **Reset** clears the search and restores the default filters. Available filters are:
 
 - Minimum rating
 - Maximum delivery fee
@@ -26,17 +26,17 @@ Enter an address and choose a search suggestion. Search restaurant names by subs
 
 **Ready when you are** and **Trust issues welcome** (verified only) start on for a first visit and after **Reset**. The verified filter requires `verification_status` to equal `verified`. Filters and sorting are remembered in this browser, including saved choices to turn off default filters.
 
-**Closest** sorts by Chowdeck's numeric `distance` field, with missing distances last. Filters and sorting apply to the loaded restaurants. The initial request and **Load more** each retrieve up to 100 restaurants; the result count and pagination note show whether more remain. Selecting a restaurant opens Chowdeck in a new tab.
+**Closest** sorts by Chowdeck's numeric `distance` field, with missing distances last. Filters and sorting apply to the loaded vendors. The initial request and **Load more** each retrieve up to 100 vendors; the result count and pagination note show whether more remain. Selecting a vendor opens Chowdeck in a new tab.
 
 **Most reviewed** sorts by review count. **Largest discount** sorts by the biggest active, published percentage offer on selected items, excluding expired or future-published offers. Cash discounts and text-only offers have no comparable percentage and sort after percentage offers.
 
-**Pick for me** randomly chooses from the loaded restaurants matching your current search and filters, moves its highlighted card to the front and shows an order link. The other cards keep your selected sort order. Each click makes a fresh choice, so picks can repeat. The choice clears if it no longer matches after a filter change or data refresh.
+**Pick for me** randomly chooses from the loaded vendors matching your current search and filters, moves its highlighted card to the front and shows an order link. The other cards keep your selected sort order. Each click makes a fresh choice, so picks can repeat. The choice clears if it no longer matches after a filter change or data refresh.
 
-Cards show scheduled closing times in the delivery country's local time (Nigeria or Ghana), including overnight service from the previous day. Day-specific hours take precedence over default hours. **Stays open for at least** requires an open, available restaurant with a known active schedule and at least the selected time remaining. Missing or invalid hours and schedules that do not cover the current time are excluded from this filter. Closing-time calculations update every minute while the page is visible and when returning to it, independently of API refreshes. Closing hours are scheduled times and do not guarantee availability until then.
+Cards show scheduled closing times in the delivery country's local time (Nigeria or Ghana), including overnight service from the previous day. Day-specific hours take precedence over default hours. **Stays open for at least** requires an open, available vendor with a known active schedule and at least the selected time remaining. Missing or invalid hours and schedules that do not cover the current time are excluded from this filter. Closing-time calculations update every minute while the page is visible and when returning to it, independently of API refreshes. Closing hours are scheduled times and do not guarantee availability until then.
 
 ## Data and browser storage
 
-The browser calls Chowdeck's guest endpoints directly. Selecting an address sends the same address-selection POST as the storefront. No login or API key is used.
+The browser calls Chowdeck's guest endpoints directly. Listing requests omit `vendor_type` and keep all returned vendor types, including restaurants, supermarkets and pharmacies. Card links use the vendor's Chowdeck category. Selecting an address sends the same address-selection POST as the storefront. No login or API key is used.
 
 The last selected address ID, label and country are saved in this browser's local storage. Revisits reuse that address without repeating the address lookup or selection request, and fetch fresh restaurant listings. Browser storage must be enabled to remember the address and preferences. Restaurant availability and final fees can change at checkout.
 

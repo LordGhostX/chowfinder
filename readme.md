@@ -2,6 +2,8 @@
 
 Explore Chowdeck vendors near an address and filter them by your preferences.
 
+[Open Chowfinder](https://chowfinder-nearby.restedpigeon616670.chatgpt.site/)
+
 ## Run locally
 
 Run this command from the project directory, then open [http://127.0.0.1:4173](http://127.0.0.1:4173):

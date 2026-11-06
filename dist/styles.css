@@ -67,6 +67,7 @@ legend { margin: 0 0 12px; padding: 0; font-size: 11px; font-weight: 600; }
 .select-wrap { display: flex; align-items: center; position: relative; }
 .select-wrap select { width: 100%; appearance: none; border: 1px solid var(--line); height: 39px; padding: 0 30px 0 11px; border-radius: 6px; font-size: 11px; color: #596156; background: #fff; }
 .select-wrap > span:last-child { position: absolute; right: 13px; pointer-events: none; font-size: 17px; color: #7e857a; top: 7px; }
+.field-help { margin: 7px 0 0; font-size: 10px; line-height: 1.6; color: var(--muted); }
 .toggle-group { margin: 25px 0 0; padding-top: 3px; border-top: 1px solid var(--line); }
 .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; padding-top: 21px; position: relative; }
 .toggle-row strong { display: block; font-size: 11px; font-weight: 600; }
@@ -85,6 +86,7 @@ legend { margin: 0 0 12px; padding: 0; font-size: 11px; font-weight: 600; }
 .results-toolbar p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .sort-wrap { display: flex; align-items: center; gap: 7px; font-size: 10px; color: var(--muted); flex-shrink: 0; }
 .sort-wrap select { background: none; color: var(--ink); border: 0; font-size: 11px; font-weight: 600; max-width: 140px; }
+.sort-note { margin: -7px 0 17px; color: var(--muted); font-size: 10px; line-height: 1.6; }
 .vendor-search { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 8px; background: white; padding: 0 13px; }
 .vendor-search:focus-within { outline: 2px solid #7b9d86; outline-offset: 2px; }
 .vendor-search svg { width: 17px; height: 17px; flex-shrink: 0; color: var(--muted); }
@@ -136,6 +138,7 @@ legend { margin: 0 0 12px; padding: 0; font-size: 11px; font-weight: 600; }
 .card-status { font-size: 9px; color: #648167; margin-top: 10px; }
 .card-status.unavailable { color: #8c8272; }
 .card-status.unavailable .status-dot { background: #ab9f8c; }
+.card-closing { margin: 6px 0 0; font-size: 9px; line-height: 1.5; color: var(--muted); }
 .active-filters { display: flex; gap: 7px; flex-wrap: wrap; margin: -4px 0 18px; }
 .filter-chip { background: #ebece3; border: 1px solid #dfe3d5; color: #627056; border-radius: 20px; padding: 5px 10px; font-size: 10px; }
 .results-error { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 16px; background: #fff0e8; border: 1px solid #eccfbe; border-radius: 8px; margin-bottom: 20px; }

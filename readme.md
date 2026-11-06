@@ -19,6 +19,7 @@ Enter an address and choose a search suggestion. Search restaurant names by subs
 - Minimum rating
 - Maximum delivery fee
 - Maximum estimated delivery time
+- Minimum time before closing: 30 minutes, 1 hour, 2 hours, 3 hours or 4 hours
 - Discounts
 - Open and available now
 - Chowpass participation
@@ -27,6 +28,10 @@ Enter an address and choose a search suggestion. Search restaurant names by subs
 **Ready when you are** and **Trust issues welcome** (verified only) start on for a first visit and after **Reset**. The verified filter requires `verification_status` to equal `verified`. Filters and sorting are remembered in this browser, including saved choices to turn off default filters.
 
 **Closest** sorts by Chowdeck's numeric `distance` field, with missing distances last. Filters and sorting apply to the loaded restaurants. **Load more** retrieves the next 30; the result count and pagination note show whether more remain. Selecting a restaurant opens Chowdeck in a new tab.
+
+**Most reviewed** sorts by review count. **Largest discount** sorts by the biggest active, published percentage offer on selected items, excluding expired or future-published offers. Cash discounts and text-only offers have no comparable percentage and sort after percentage offers.
+
+Cards show scheduled closing times in the delivery country's local time (Nigeria or Ghana), including overnight service from the previous day. Day-specific hours take precedence over default hours. **Stays open for at least** requires an open, available restaurant with a known active schedule and at least the selected time remaining. Missing or invalid hours and schedules that do not cover the current time are excluded from this filter. Time-based results update every minute while the page is visible and when returning to it; this does not make additional API requests. Closing hours are scheduled times and do not guarantee availability until then.
 
 ## Data and browser storage
 

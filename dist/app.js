@@ -1,5 +1,5 @@
 import { getRestaurants, searchAddresses, selectAddress } from "./api.js";
-import { filterRestaurants, sortRestaurants } from "./restaurant-model.js";
+import { closingWindow, filterRestaurants, localClock, sortRestaurants } from "./restaurant-model.js";
 
 const $ = (id) => document.getElementById(id);
 const LAST_ADDRESS_KEY = "chowfinder.lastAddress";
@@ -56,7 +56,12 @@ function restoreFilters() {
       rating.checked = true;
     }
 
-    for (const [key, id] of [["fee", "fee-filter"], ["time", "time-filter"], ["sort", "sort-order"]]) {
+    for (const [key, id] of [
+      ["fee", "fee-filter"],
+      ["time", "time-filter"],
+      ["closing", "closing-filter"],
+      ["sort", "sort-order"],
+    ]) {
       const value = saved[key] === null ? "" : String(saved[key]);
       if ([...$(id).options].some((option) => option.value === value)) {
         $(id).value = value;
@@ -124,6 +129,7 @@ function preferences() {
     rating: Number(document.querySelector('input[name="rating"]:checked').value),
     fee: $("fee-filter").value === "" ? null : Number($("fee-filter").value),
     time: $("time-filter").value === "" ? null : Number($("time-filter").value),
+    closing: $("closing-filter").value === "" ? null : Number($("closing-filter").value),
     discounts: $("discount-filter").checked,
     open: $("open-filter").checked,
     chowpass: $("chowpass-filter").checked,
@@ -306,7 +312,27 @@ function icon(kind) {
   return svg;
 }
 
-function card(restaurant) {
+function closingTime(minutes) {
+  const hour = Math.floor(minutes / 60) % 24;
+  return `${hour % 12 || 12}:${String(minutes % 60).padStart(2, "0")} ${hour >= 12 ? "pm" : "am"}`;
+}
+
+function closingText(restaurant, clock) {
+  const window = closingWindow(restaurant, clock);
+  if (restaurant.open && window) {
+    return `Closes at ${closingTime(window.closesAt)}${window.dayOffset ? " tomorrow" : ""}`;
+  }
+
+  const hours = restaurant.hours[clock.weekday];
+  if (!hours) {
+    return "Closing time unavailable";
+  }
+
+  const tomorrow = hours.closing < hours.opening || hours.closing === 1440;
+  return `Scheduled close: ${closingTime(hours.closing)}${tomorrow ? " tomorrow" : ""}`;
+}
+
+function card(restaurant, clock) {
   const article = element("article", "restaurant-card");
   const imageLink = element("a", "card-image-link");
   imageLink.href = restaurant.url;
@@ -382,7 +408,9 @@ function card(restaurant) {
   const available = restaurant.open && !restaurant.unavailable;
   const status = element("div", `card-status${available ? "" : " unavailable"}`);
   status.append(element("span", "status-dot"), document.createTextNode(available ? "Open & ready for you" : restaurant.open ? "Temporarily unavailable" : "Currently closed"));
-  body.append(titleRow, element("p", "card-area", restaurant.location || "Restaurant"), stats, status);
+  const closing = element("p", "card-closing", closingText(restaurant, clock));
+  closing.title = `Scheduled hours in ${state.currency === "GHS" ? "Ghana" : "Nigeria"} local time. Availability may change.`;
+  body.append(titleRow, element("p", "card-area", restaurant.location || "Restaurant"), stats, status, closing);
   article.append(imageLink, body);
   return article;
 }
@@ -392,6 +420,7 @@ function renderChips(filters) {
   if (filters.rating) labels.push(`${filters.rating}+ stars`);
   if (filters.fee !== null) labels.push(filters.fee === 0 ? "Free delivery" : `Delivery ≤ ${money(filters.fee * 100)}`);
   if (filters.time !== null) labels.push(`Within ${filters.time} mins`);
+  if (filters.closing !== null) labels.push(`Open for ≥ ${$("closing-filter").selectedOptions[0].textContent}`);
   if (filters.discounts) labels.push("With discounts");
   if (filters.open) labels.push("Open now");
   if (filters.chowpass) labels.push("Chowpass only");
@@ -402,10 +431,15 @@ function renderChips(filters) {
 
 function render() {
   const filters = preferences();
-  const matches = sortRestaurants(filterRestaurants(state.restaurants, filters), $("sort-order").value);
+  const now = Date.now();
+  const timeZone = state.address?.country.toLowerCase() === "ghana" ? "Africa/Accra" : "Africa/Lagos";
+  const clock = localClock(now, timeZone);
+  const order = $("sort-order").value;
+  const matches = sortRestaurants(filterRestaurants(state.restaurants, filters, clock), order, now);
   renderChips(filters);
   document.querySelector(".results").setAttribute("aria-busy", String(state.loading));
-  $("restaurant-grid").replaceChildren(...matches.map(card));
+  $("restaurant-grid").replaceChildren(...matches.map((restaurant) => card(restaurant, clock)));
+  $("discount-sort-note").hidden = order !== "discount";
   $("results-error").hidden = !state.error;
   $("results-error-text").textContent = state.error;
   $("loading-state").hidden = !state.loading || state.restaurants.length > 0;
@@ -520,6 +554,15 @@ $("reset-filters").addEventListener("click", () => {
 });
 $("load-more").addEventListener("click", () => loadRestaurants());
 $("retry-button").addEventListener("click", () => retryLastRequest?.());
+
+function refreshHours() {
+  if (!document.hidden && state.restaurants.length) {
+    render();
+  }
+}
+
+setInterval(refreshHours, 60000);
+document.addEventListener("visibilitychange", refreshHours);
 
 restoreFilters();
 const lastAddress = readLastAddress();

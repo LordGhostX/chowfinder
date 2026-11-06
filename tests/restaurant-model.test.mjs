@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { filterRestaurants, normalizeVendor, sortRestaurants } from "../dist/restaurant-model.js";
+import { closingWindow, filterRestaurants, localClock, normalizeVendor, sortRestaurants } from "../dist/restaurant-model.js";
 
 const vendor = (changes = {}) => normalizeVendor({
   id: 1,
@@ -93,4 +93,109 @@ test("sorting compares numeric ratings and leaves the original order intact", ()
   const original = [vendor(), vendor({ id: 2, average_rating: "4.9" }), vendor({ id: 3, average_rating: null })];
   assert.deepEqual(sortRestaurants(original, "rating").map((item) => item.id), [2, 1, 3]);
   assert.deepEqual(original.map((item) => item.id), [1, 2, 3]);
+});
+
+test("most reviewed sorts numeric review counts and keeps missing counts last", () => {
+  const restaurants = [
+    vendor({ id: 1, number_of_rating: "20" }),
+    vendor({ id: 2, number_of_rating: "100" }),
+    vendor({ id: 3, number_of_rating: null }),
+  ];
+
+  assert.deepEqual(sortRestaurants(restaurants, "reviews").map((item) => item.id), [2, 1, 3]);
+});
+
+test("largest discount compares active percentage offers, ignoring expired and unpublished offers", () => {
+  const now = Date.parse("2026-11-06T00:00:00Z");
+  const offer = (value, changes = {}) => ({
+    type: "percentage_off",
+    value,
+    is_active: true,
+    is_published: true,
+    expiry_date: "2026-11-07T00:00:00Z",
+    ...changes,
+  });
+  const restaurants = [
+    vendor({ id: 1, discounts: [offer("10"), offer(25)] }),
+    vendor({ id: 2, discounts: [offer(30)] }),
+    vendor({ id: 3, discounts: [
+      offer(90, { expiry_date: "2026-11-06T00:00:00Z" }),
+      offer(80, { is_active: false }),
+      offer(70, { is_published: false }),
+      offer(60, { published_date: "2026-11-07T00:00:00Z" }),
+      offer(50, { expiry_date: "invalid" }),
+      offer(100000, { type: "amount_off" }),
+    ] }),
+  ];
+
+  assert.deepEqual(sortRestaurants(restaurants, "discount", now).map((item) => item.id), [2, 1, 3]);
+  assert.deepEqual(restaurants.map((item) => item.id), [1, 2, 3]);
+});
+
+test("closing hours use the restaurant's local weekday and carry yesterday's overnight service", () => {
+  const now = Date.parse("2026-11-06T00:00:00Z");
+  const clock = localClock(now, "Africa/Lagos");
+  const restaurant = vendor({ available_hours: {
+    Thursday: { opening: "2200", closing: "0200" },
+    Friday: { opening: 900, closing: "2300" },
+  } });
+
+  assert.equal(clock.weekday, 5);
+  assert.equal(clock.minutes, 60);
+  assert.equal(localClock(now, "Africa/Accra").minutes, 0);
+  assert.deepEqual(closingWindow(restaurant, clock), { closesAt: 120, dayOffset: 0, minutesRemaining: 60 });
+  assert.deepEqual(closingWindow(restaurant, localClock(Date.parse("2026-11-05T22:00:00Z"))), {
+    closesAt: 120,
+    dayOffset: 1,
+    minutesRemaining: 180,
+  });
+});
+
+test("weekday hours override defaults; closed days and invalid hours do not invent a closing time", () => {
+  const clock = localClock(Date.parse("2026-11-06T11:00:00Z"));
+  const restaurant = vendor({ available_hours: {
+    default: { opening: "0900", closing: "2100" },
+    Friday: { opening: "1000", closing: "1500" },
+    friday: { opening: "1000", closing: "1600" },
+  } });
+
+  assert.equal(closingWindow(restaurant, clock).minutesRemaining, 180);
+  assert.equal(closingWindow(vendor({ available_hours: { default: { opening: "0900", closing: "2500" } } }), clock), null);
+  assert.equal(closingWindow(vendor({ available_hours: { default: { opening: "", closing: "2100" } } }), clock), null);
+  assert.equal(closingWindow(vendor({ available_hours: { default: { opening: "0900", closing: "0900" } } }), clock), null);
+  assert.equal(closingWindow(vendor({ available_hours: { Friday: { is_open: false, opening: "0900", closing: "2100" } } }), clock), null);
+});
+
+test("minimum time before closing includes the boundary and excludes closed, unavailable, or unknown hours", () => {
+  const clock = localClock(Date.parse("2026-11-06T00:00:00Z"));
+  const hours = { default: { opening: "1800", closing: "0200" } };
+  const restaurants = [
+    vendor({ id: 1, available_hours: hours }),
+    vendor({ id: 2, available_hours: { default: { opening: "1800", closing: "0159" } } }),
+    vendor({ id: 3, available_hours: hours, is_open: false }),
+    vendor({ id: 4, available_hours: hours, is_temporarily_unavailable: true }),
+    vendor({ id: 5 }),
+  ];
+
+  assert.deepEqual(filterRestaurants(restaurants, { closing: 60 }, clock).map((item) => item.id), [1]);
+  assert.equal(filterRestaurants(restaurants, { closing: null }, clock).length, 5);
+  assert.equal(filterRestaurants(restaurants, { closing: 60 }, { ...clock, minutes: 60 + 1 / 60 }).length, 0);
+  assert.equal(closingWindow(restaurants[0], { ...clock, minutes: 120 }), null);
+});
+
+test("overnight hours carry from Saturday to Sunday, and 2400 closes at midnight", () => {
+  const clock = localClock(Date.parse("2026-11-07T23:30:00Z"));
+  const restaurant = vendor({ available_hours: {
+    Saturday: { opening: "1800", closing: "0200" },
+    Sunday: { is_open: false },
+  } });
+
+  assert.equal(clock.weekday, 0);
+  assert.equal(closingWindow(restaurant, clock).minutesRemaining, 90);
+  const midnight = vendor({ available_hours: { default: { opening: "0900", closing: "2400" } } });
+  assert.deepEqual(closingWindow(midnight, { weekday: 6, minutes: 1410 }), {
+    closesAt: 0,
+    dayOffset: 1,
+    minutesRemaining: 30,
+  });
 });

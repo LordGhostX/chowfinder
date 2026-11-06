@@ -16,6 +16,101 @@ function imageUrl(value) {
   }
 }
 
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+function scheduleTime(value, allowMidnight = false) {
+  const valueText = typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
+  if (!/^\d{1,4}$/.test(valueText)) {
+    return null;
+  }
+
+  const text = valueText.padStart(4, "0");
+  const hours = Number(text.slice(0, 2));
+  const minutes = Number(text.slice(2));
+  if (allowMidnight && hours === 24 && minutes === 0) {
+    return 1440;
+  }
+
+  return hours < 24 && minutes < 60 ? hours * 60 + minutes : null;
+}
+
+function normalizeHours(raw) {
+  return WEEKDAYS.map((day) => {
+    const hours = raw?.[day] ?? raw?.[day.toLowerCase()] ?? raw?.default;
+    if (!hours || hours.is_open === false || hours.is_open === 0) {
+      return null;
+    }
+
+    const opening = scheduleTime(hours.opening);
+    const closing = scheduleTime(hours.closing, true);
+    if (opening === null || closing === null || opening === closing) {
+      return null;
+    }
+
+    return { opening, closing };
+  });
+}
+
+function normalizeDiscounts(raw) {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw.flatMap((offer) => {
+    const percent = numberOrNull(offer?.value);
+    if (offer?.type !== "percentage_off" || percent === null || percent <= 0 || percent > 100
+      || ![true, 1].includes(offer.is_active) || ![true, 1].includes(offer.is_published)) {
+      return [];
+    }
+
+    const startsAt = offer.published_date == null ? null : Date.parse(offer.published_date);
+    const expiresAt = offer.expiry_date == null ? null : Date.parse(offer.expiry_date);
+    if ((startsAt !== null && !Number.isFinite(startsAt)) || (expiresAt !== null && !Number.isFinite(expiresAt))) {
+      return [];
+    }
+
+    return [{ percent, startsAt, expiresAt }];
+  });
+}
+
+export function localClock(now = Date.now(), timeZone = "Africa/Lagos") {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    weekday: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+  return {
+    weekday: WEEKDAYS.indexOf(values.weekday),
+    minutes: Number(values.hour) * 60 + Number(values.minute) + Number(values.second) / 60,
+  };
+}
+
+export function closingWindow(restaurant, clock) {
+  for (const dayOffset of [-1, 0]) {
+    const hours = restaurant.hours[(clock.weekday + dayOffset + 7) % 7];
+    if (!hours) {
+      continue;
+    }
+
+    const opening = dayOffset * 1440 + hours.opening;
+    const closing = dayOffset * 1440 + hours.closing + (hours.closing < hours.opening ? 1440 : 0);
+    if (clock.minutes >= opening && clock.minutes < closing) {
+      return {
+        closesAt: closing % 1440,
+        dayOffset: Math.floor(closing / 1440),
+        minutesRemaining: closing - clock.minutes,
+      };
+    }
+  }
+
+  return null;
+}
+
 export function normalizeVendor(raw) {
   if (!raw || !Number.isSafeInteger(raw.id) || typeof raw.name !== "string") {
     throw new Error("Chowdeck returned an unexpected restaurant format. Please try again.");
@@ -47,10 +142,12 @@ export function normalizeVendor(raw) {
     verified: raw.verification_status === "verified",
     offer: typeof raw.discount_text === "string" ? raw.discount_text.trim() : "",
     hasDiscount: Boolean(raw.discount_text?.trim()) || (Array.isArray(raw.discounts) && raw.discounts.length > 0),
+    discountOffers: normalizeDiscounts(raw.discounts),
+    hours: normalizeHours(raw.available_hours),
   };
 }
 
-export function filterRestaurants(restaurants, preferences) {
+export function filterRestaurants(restaurants, preferences, clock = localClock()) {
   const query = (preferences.query ?? "").trim().toLowerCase();
 
   return restaurants.filter((restaurant) => {
@@ -82,11 +179,18 @@ export function filterRestaurants(restaurants, preferences) {
       return false;
     }
 
+    if (preferences.closing > 0) {
+      const window = closingWindow(restaurant, clock);
+      if (!restaurant.open || restaurant.unavailable || !window || window.minutesRemaining < preferences.closing) {
+        return false;
+      }
+    }
+
     return !preferences.open || (restaurant.open && !restaurant.unavailable);
   });
 }
 
-export function sortRestaurants(restaurants, order) {
+export function sortRestaurants(restaurants, order, now = Date.now()) {
   const copy = [...restaurants];
   if (order === "rating") {
     copy.sort((left, right) => (right.rating ?? -1) - (left.rating ?? -1) || right.reviewCount - left.reviewCount);
@@ -96,6 +200,19 @@ export function sortRestaurants(restaurants, order) {
     copy.sort((left, right) => (left.maxTime ?? Infinity) - (right.maxTime ?? Infinity));
   } else if (order === "distance") {
     copy.sort((left, right) => (left.distance ?? Infinity) - (right.distance ?? Infinity));
+  } else if (order === "reviews") {
+    copy.sort((left, right) => right.reviewCount - left.reviewCount);
+  } else if (order === "discount") {
+    const ranked = copy.map((restaurant) => {
+      const active = restaurant.discountOffers.filter((offer) => (offer.startsAt === null || offer.startsAt <= now)
+        && (offer.expiresAt === null || offer.expiresAt > now));
+      const discount = active.reduce((largest, offer) => Math.max(largest, offer.percent), 0);
+
+      return { restaurant, discount };
+    });
+    ranked.sort((left, right) => right.discount - left.discount);
+
+    return ranked.map((item) => item.restaurant);
   }
 
   return copy;

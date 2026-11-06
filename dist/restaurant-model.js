@@ -160,6 +160,36 @@ export function normalizeVendor(raw) {
   };
 }
 
+export function normalizeFood(raw, vendorCurrency) {
+  if (!raw || !Number.isSafeInteger(raw.id) || raw.id <= 0 || typeof raw.name !== "string" || !raw.name.trim()
+    || raw.is_active === false || raw.is_active === 0 || raw.is_published === false || raw.is_published === 0) {
+    return null;
+  }
+
+  const regularPrice = numberOrNull(raw.price);
+  const discountPrice = numberOrNull(raw.discount_price);
+  const discounted = discountPrice !== null && (regularPrice === null || discountPrice < regularPrice);
+  const image = raw.images?.find((item) => typeof item?.path === "string")?.path;
+  let inStock = null;
+  if (raw.in_stock === true || raw.in_stock === 1) {
+    inStock = true;
+  } else if (raw.in_stock === false || raw.in_stock === 0) {
+    inStock = false;
+  }
+
+  return {
+    id: raw.id,
+    name: raw.name.trim(),
+    description: typeof raw.description === "string" ? raw.description.trim() : "",
+    price: discounted ? discountPrice : regularPrice,
+    originalPrice: discounted ? regularPrice : null,
+    currency: typeof raw.currency === "string" && /^[A-Z]{3}$/.test(raw.currency) ? raw.currency : vendorCurrency,
+    image: imageUrl(image),
+    inStock,
+    priceDescription: typeof raw.price_description === "string" ? raw.price_description.trim() : "",
+  };
+}
+
 export function parseVendorIds(serialized) {
   try {
     const ids = JSON.parse(serialized);

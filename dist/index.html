@@ -110,9 +110,13 @@
           </div>
           <p id="view-note" class="view-note" hidden></p>
           <p id="discount-sort-note" class="sort-note" hidden>Ranked by the largest active percentage off selected items. Offer conditions may apply.</p>
-          <div class="vendor-search" role="search" aria-label="Search loaded vendors">
+          <div class="search-modes" role="group" aria-label="Search mode">
+            <button type="button" id="search-vendors" aria-pressed="true">Vendors</button>
+            <button type="button" id="search-food" aria-pressed="false">Food</button>
+          </div>
+          <div class="vendor-search" role="search" aria-label="Search near your address">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg>
-            <label class="sr-only" for="vendor-search">Search vendors by name</label>
+            <label class="sr-only" id="vendor-search-label" for="vendor-search">Search vendors by name</label>
             <input id="vendor-search" type="search" placeholder="Search vendors by name…" autocomplete="off" maxlength="120" aria-describedby="vendor-search-help" />
             <button type="button" id="clear-vendor-search" aria-label="Clear vendor search" hidden>Clear</button>
           </div>

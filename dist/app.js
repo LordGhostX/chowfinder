@@ -1,4 +1,5 @@
 import { getRestaurantPages, getRestaurants, searchAddresses, selectAddress } from "./api.js";
+import { FoodSearch } from "./food-search.js";
 import {
   closingWindow,
   filterRestaurants,
@@ -29,7 +30,9 @@ const state = {
   view: "all",
   favourites: readVendorIds(FAVOURITES_KEY),
   hidden: readVendorIds(HIDDEN_KEY),
+  searchMode: "vendors",
 };
+const foodSearch = new FoodSearch(render);
 let searchController;
 let restaurantController;
 let debounceTimer;
@@ -58,12 +61,13 @@ function rememberVendorIds(key, ids) {
   }
 }
 
-function focusVendorAction(id) {
-  const favourite = document.querySelector(`[data-favourite-id="${id}"]`);
+function focusVendorAction(id, foodId = null) {
+  const foodSelector = foodId === null ? "" : `[data-food-id="${foodId}"]`;
+  const favourite = document.querySelector(`[data-favourite-id="${id}"]${foodSelector}`);
   (favourite || $(`view-${state.view}`)).focus();
 }
 
-function toggleFavourite(id) {
+function toggleFavourite(id, foodId = null) {
   if (state.favourites.has(id)) {
     state.favourites.delete(id);
   } else {
@@ -72,7 +76,7 @@ function toggleFavourite(id) {
 
   rememberVendorIds(FAVOURITES_KEY, state.favourites);
   render();
-  focusVendorAction(id);
+  focusVendorAction(id, foodId);
 }
 
 function clearUndo() {
@@ -169,6 +173,9 @@ function restoreFilters() {
     if (typeof saved.query === "string") {
       $("vendor-search").value = saved.query.slice(0, $("vendor-search").maxLength);
     }
+    if (saved.searchMode === "food" || saved.searchMode === "vendors") {
+      state.searchMode = saved.searchMode;
+    }
   } catch {
     // Keep the default filters when saved preferences cannot be read.
   }
@@ -176,7 +183,7 @@ function restoreFilters() {
 
 function rememberFilters() {
   try {
-    localStorage.setItem(FILTERS_KEY, JSON.stringify({ ...preferences(), sort: $("sort-order").value }));
+    localStorage.setItem(FILTERS_KEY, JSON.stringify({ ...preferences(), sort: $("sort-order").value, searchMode: state.searchMode }));
   } catch {
     // Filtering still works when browser storage is unavailable.
   }
@@ -188,6 +195,15 @@ function applyAddress(address) {
   updateCurrency();
   $("selected-address").textContent = address.label;
   $("address-input").value = address.label;
+  syncFoodSearch();
+}
+
+function syncFoodSearch() {
+  return foodSearch.update(state.address?.id ?? null, $("vendor-search").value, state.searchMode === "food");
+}
+
+function showingFood() {
+  return state.searchMode === "food" && state.view !== "hidden";
 }
 
 function element(tag, className, text) {
@@ -329,6 +345,7 @@ async function chooseAddress(suggestion) {
   restaurantController = controller;
   retryLastRequest = () => chooseAddress(suggestion);
   state.address = null;
+  syncFoodSearch();
   state.restaurants = [];
   state.hasMore = false;
   state.cursor = null;
@@ -451,18 +468,22 @@ async function refreshRestaurants() {
 }
 
 function renderFreshness() {
-  const updated = state.refreshedAt
-    ? new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit" }).format(state.refreshedAt)
+  const food = showingFood();
+  const refreshedAt = food ? foodSearch.state.refreshedAt : state.refreshedAt;
+  const refreshing = food ? foodSearch.state.refreshing : Boolean(refreshController);
+  const failed = food ? foodSearch.state.refreshFailed : state.refreshFailed;
+  const updated = refreshedAt
+    ? new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit" }).format(refreshedAt)
     : "";
-  let text = `Updated at ${updated}. Refreshes every 5 minutes. Availability and final fees may change at checkout.`;
-  if (refreshController) {
+  let text = `${food ? "Food results updated" : "Updated"} at ${updated}. Refreshes every 5 minutes. Availability and final fees may change at checkout.`;
+  if (refreshing) {
     text = "Refreshing availability… Your current results stay visible.";
-  } else if (state.refreshFailed) {
+  } else if (failed) {
     text = `Couldn’t refresh availability. Showing results from ${updated}; retrying in 5 minutes.`;
   }
 
   $("freshness").textContent = text;
-  $("freshness").hidden = state.restaurants.length === 0;
+  $("freshness").hidden = food ? !refreshedAt : state.restaurants.length === 0;
 }
 
 function icon(kind) {
@@ -500,23 +521,37 @@ function closingText(restaurant, clock) {
   return `Scheduled close: ${closingTime(hours.closing)}${tomorrow ? " tomorrow" : ""}`;
 }
 
-function card(restaurant, clock) {
+function card(restaurant, clock, food = null) {
   const article = element("article", "restaurant-card");
   article.classList.toggle("is-picked", restaurant.id === state.pickId);
+  const label = food ? `${food.name} at ${restaurant.name}` : restaurant.name;
+  const imageUrl = food?.image || restaurant.image;
+  let stockText = "";
+  if (food && food.inStock !== true) {
+    stockText = food.inStock === false ? "Out of stock" : "Stock status unavailable";
+  }
+
+  const available = restaurant.open && !restaurant.unavailable && !stockText;
+  let statusText = stockText || "Open & ready for you";
+  if (!restaurant.open) {
+    statusText = "Currently closed";
+  } else if (restaurant.unavailable) {
+    statusText = "Temporarily unavailable";
+  }
   const imageLink = element("a", "card-image-link");
   imageLink.href = restaurant.url;
   imageLink.target = "_blank";
   imageLink.rel = "noopener noreferrer";
   const membershipLabel = restaurant.chowpass ? ", Chowpass enabled" : "";
-  imageLink.setAttribute("aria-label", `View ${restaurant.name} on Chowdeck${membershipLabel}`);
+  imageLink.setAttribute("aria-label", `View ${label} on Chowdeck${membershipLabel}`);
   const fallback = () => {
     imageLink.querySelector("img")?.remove();
-    imageLink.prepend(element("span", "image-fallback", restaurant.name.slice(0, 1)));
+    imageLink.prepend(element("span", "image-fallback", (food?.name || restaurant.name).slice(0, 1)));
   };
 
-  if (restaurant.image) {
+  if (imageUrl) {
     const image = element("img", "card-image");
-    image.src = restaurant.image;
+    image.src = imageUrl;
     image.alt = "";
     image.loading = "lazy";
     image.decoding = "async";
@@ -533,8 +568,8 @@ function card(restaurant, clock) {
   }
 
   const badges = element("div", "card-badges");
-  if (!restaurant.open || restaurant.unavailable) {
-    badges.append(element("span", "closed-label", restaurant.open ? "Unavailable now" : "Closed now"));
+  if (!available) {
+    badges.append(element("span", "closed-label", !restaurant.open ? "Closed now" : statusText));
   }
 
   if (restaurant.chowpass) {
@@ -551,11 +586,14 @@ function card(restaurant, clock) {
   const saved = state.favourites.has(restaurant.id);
   favourite.type = "button";
   favourite.dataset.favouriteId = restaurant.id;
+  if (food) {
+    favourite.dataset.foodId = food.id;
+  }
   favourite.setAttribute("aria-pressed", String(saved));
   favourite.setAttribute("aria-label", saved ? `Remove ${restaurant.name} from favourites` : `Save ${restaurant.name} to favourites`);
   favourite.title = saved ? "Remove from favourites" : "Save to favourites";
   favourite.append(icon("heart"));
-  favourite.addEventListener("click", () => toggleFavourite(restaurant.id));
+  favourite.addEventListener("click", () => toggleFavourite(restaurant.id, food?.id ?? null));
   tools.append(favourite);
 
   if (state.view === "hidden") {
@@ -567,7 +605,7 @@ function card(restaurant, clock) {
   } else {
     const menu = element("details", "vendor-menu");
     const summary = element("summary", "card-action", "⋯");
-    summary.setAttribute("aria-label", `More actions for ${restaurant.name}`);
+    summary.setAttribute("aria-label", `More actions for ${label}`);
     summary.title = "More actions";
     const panel = element("div", "vendor-menu-panel");
     const hide = element("button", "", "Hide vendor");
@@ -583,11 +621,14 @@ function card(restaurant, clock) {
   const body = element("div", "card-body");
   const titleRow = element("div", "card-title-row");
   const title = element("h3", "card-title");
-  const titleLink = element("a", "", restaurant.name);
+  const titleLink = element("a", "", food?.name || restaurant.name);
   titleLink.href = restaurant.url;
   titleLink.target = "_blank";
   titleLink.rel = "noopener noreferrer";
-  titleLink.setAttribute("aria-label", `${restaurant.name}, opens on Chowdeck in a new tab`);
+  titleLink.setAttribute("aria-label", `${label}, opens on Chowdeck in a new tab`);
+  if (food?.description) {
+    titleLink.title = food.description;
+  }
   title.append(titleLink);
 
   const rating = element("span", "card-rating");
@@ -595,7 +636,10 @@ function card(restaurant, clock) {
   rating.append(document.createTextNode(restaurant.rating === null ? "New" : restaurant.rating.toFixed(1)));
   rating.append(element("span", "rating-count", `(${new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(restaurant.reviewCount)})`));
   rating.setAttribute("aria-label", restaurant.rating === null ? "No rating yet" : `Rated ${restaurant.rating} out of 5 from ${restaurant.reviewCount} reviews`);
-  titleRow.append(title, rating);
+  titleRow.append(title);
+  if (!food) {
+    titleRow.append(rating);
+  }
 
   const stats = element("div", "card-stats");
   const delivery = element("span");
@@ -609,14 +653,29 @@ function card(restaurant, clock) {
   time.append(icon("time"), document.createTextNode(timeText));
   stats.append(delivery, time);
 
-  const available = restaurant.open && !restaurant.unavailable;
   const status = element("div", `card-status${available ? "" : " unavailable"}`);
-  status.append(element("span", "status-dot"), document.createTextNode(available ? "Open & ready for you" : restaurant.open ? "Temporarily unavailable" : "Currently closed"));
+  status.append(element("span", "status-dot"), document.createTextNode(statusText));
   const closing = element("p", "card-closing", closingText(restaurant, clock));
   closing.title = `Scheduled hours in ${state.currency === "GHS" ? "Ghana" : "Nigeria"} local time. Availability may change.`;
   const availability = element("div", "card-availability");
   availability.append(status, closing);
-  body.append(titleRow, element("p", "card-area", restaurant.location || "Vendor"), stats, availability);
+  body.append(titleRow);
+  if (food) {
+    const price = element("p", "food-price");
+    price.append(document.createTextNode(food.price === null ? "Price unavailable" : money(food.price, food.currency)));
+    if (food.originalPrice !== null) {
+      price.append(element("s", "", money(food.originalPrice, food.currency)));
+    }
+    if (food.priceDescription) {
+      price.append(element("small", "", food.priceDescription));
+    }
+
+    const vendor = element("div", "food-vendor");
+    vendor.append(element("span", "", `From ${restaurant.name}`), rating);
+    body.append(price, vendor);
+  }
+
+  body.append(element("p", "card-area", restaurant.location || "Vendor"), stats, availability);
   article.append(media, body);
   return article;
 }
@@ -639,9 +698,24 @@ function addressClock(now = Date.now()) {
   return localClock(now, timeZone);
 }
 
+function loadedVendors() {
+  return [...new Map([...state.restaurants, ...foodSearch.state.groups.map((group) => group.vendor)]
+    .map((vendor) => [vendor.id, vendor])).values()];
+}
+
 function matchingVendors(filters, clock) {
-  const vendors = vendorsInView(state.restaurants, state.view, state.favourites, state.hidden);
-  return state.view === "hidden" ? vendors : filterRestaurants(vendors, filters, clock);
+  let source = state.restaurants;
+  if (state.view === "hidden") {
+    source = loadedVendors();
+  } else if (showingFood()) {
+    source = foodSearch.state.groups
+      .filter((group) => group.foods.some((food) => !filters.open || food.inStock === true))
+      .map((group) => group.vendor);
+  }
+
+  const vendors = vendorsInView(source, state.view, state.favourites, state.hidden);
+  const applied = showingFood() ? { ...filters, query: "" } : filters;
+  return state.view === "hidden" ? vendors : filterRestaurants(vendors, applied, clock);
 }
 
 function renderViews() {
@@ -655,13 +729,27 @@ function renderViews() {
   $("view-note").hidden = state.view === "all";
   $("view-note").textContent = managingHidden
     ? "Only API-loaded hidden vendors appear here. Search and preference filters are paused so you can restore them."
-    : "Only API-loaded favourites appear here. Your filters still apply, and hidden vendors stay hidden. Load more to find saved vendors from later pages.";
+    : showingFood()
+      ? "Food from API-loaded favourites appears here. Your filters still apply, and hidden vendors stay hidden."
+      : "Only API-loaded favourites appear here. Your filters still apply, and hidden vendors stay hidden. Load more to find saved vendors from later pages.";
   $("filter-form").inert = managingHidden;
   document.querySelector(".filters").classList.toggle("filters-paused", managingHidden);
   $("reset-filters").disabled = managingHidden;
   $("vendor-search").disabled = managingHidden;
   $("clear-vendor-search").disabled = managingHidden;
-  $("vendor-search-help").textContent = managingHidden ? "Search is paused while managing hidden vendors." : "Searches the vendors you’ve loaded.";
+  $("search-vendors").setAttribute("aria-pressed", String(state.searchMode === "vendors"));
+  $("search-food").setAttribute("aria-pressed", String(state.searchMode === "food"));
+  $("search-vendors").disabled = managingHidden;
+  $("search-food").disabled = managingHidden;
+  const searchLabel = state.searchMode === "food" ? "What are you craving?" : "Search vendors by name";
+  $("vendor-search-label").textContent = searchLabel;
+  $("vendor-search").placeholder = `${searchLabel}…`;
+  $("clear-vendor-search").setAttribute("aria-label", "Clear search");
+  $("vendor-search-help").textContent = managingHidden
+    ? "Search is paused while managing hidden vendors."
+    : state.searchMode === "food"
+      ? "Search restaurant menus near your address. Refine your query for different matches; vendor filters and sorting still apply."
+      : "Searches the vendors you’ve loaded.";
 }
 
 function renderPick(restaurant) {
@@ -684,27 +772,34 @@ function render() {
   const now = Date.now();
   const clock = addressClock(now);
   const order = $("sort-order").value;
+  const food = showingFood();
+  const loading = food ? foodSearch.state.loading || (!state.address && state.loading) : state.loading;
+  const error = food && state.address ? foodSearch.state.error : state.error;
   const matches = sortRestaurants(matchingVendors(filters, clock), order, now);
+  const groups = new Map(foodSearch.state.groups.map((group) => [group.vendor.id, group.foods]));
   const pick = state.view === "hidden" ? null : matches.find((restaurant) => restaurant.id === state.pickId);
   if (pick) {
     matches.splice(matches.indexOf(pick), 1);
     matches.unshift(pick);
   }
 
+  const foods = food ? matches.flatMap((vendor) => groups.get(vendor.id)
+    .filter((item) => !filters.open || item.inStock === true).map((item) => ({ vendor, food: item }))) : [];
   state.pickId = pick?.id ?? null;
   renderPick(pick);
   $("pick-for-me").disabled = matches.length === 0 || state.view === "hidden";
   renderViews();
   renderChips(filters);
   $("active-filters").hidden = state.view === "hidden" || $("active-filters").hidden;
-  document.querySelector(".results").setAttribute("aria-busy", String(state.loading));
-  $("restaurant-grid").replaceChildren(...matches.map((restaurant) => card(restaurant, clock)));
+  document.querySelector(".results").setAttribute("aria-busy", String(loading));
+  const cards = food ? foods.map((item) => card(item.vendor, clock, item.food)) : matches.map((vendor) => card(vendor, clock));
+  $("restaurant-grid").replaceChildren(...cards);
   $("discount-sort-note").hidden = order !== "discount";
-  $("results-error").hidden = !state.error;
-  $("results-error-text").textContent = state.error;
-  $("loading-state").hidden = !state.loading || state.restaurants.length > 0;
-  $("empty-state").hidden = state.loading || Boolean(state.error) || matches.length > 0;
-  $("pagination").hidden = !state.address || state.restaurants.length === 0 || (!state.hasMore && matches.length === 0);
+  $("results-error").hidden = !error;
+  $("results-error-text").textContent = error;
+  $("loading-state").hidden = !loading || matches.length > 0;
+  $("empty-state").hidden = loading || Boolean(error) || matches.length > 0;
+  $("pagination").hidden = food || !state.address || state.restaurants.length === 0 || (!state.hasMore && matches.length === 0);
   $("load-more").hidden = !state.hasMore;
   $("load-more").disabled = state.loading;
   $("load-more").firstChild.textContent = state.loading ? "Loading vendors… " : "Load more vendors ";
@@ -712,14 +807,23 @@ function render() {
   $("clear-vendor-search").hidden = filters.query.length === 0;
 
   if (state.address) {
-    $("results-heading").textContent = state.view === "favourites" ? "Your favourites" : state.view === "hidden" ? "Hidden vendors" : "Vendors near you";
+    $("results-heading").textContent = state.view === "hidden" ? "Hidden vendors" : food ? "Food near you" : state.view === "favourites" ? "Your favourites" : "Vendors near you";
     const count = state.view === "hidden" ? `${matches.length} hidden` : `${matches.length} ${matches.length === 1 ? "match" : "matches"}`;
-    $("results-summary").textContent = `${count} · ${state.restaurants.length} vendors loaded`;
-    $("pagination-note").textContent = state.hasMore
-      ? `Filters apply to ${state.restaurants.length} loaded vendors. There are more to explore.`
-      : `All ${state.restaurants.length} vendors loaded. You’re seeing every match.`;
+    const loadedCount = state.view === "hidden" ? loadedVendors().length : state.restaurants.length;
+    $("results-summary").textContent = food
+      ? `${foods.length} food ${foods.length === 1 ? "match" : "matches"} · ${matches.length} matching ${matches.length === 1 ? "vendor" : "vendors"}`
+      : `${count} · ${loadedCount} vendors loaded`;
+    if (state.view === "hidden") {
+      $("pagination-note").textContent = state.hasMore
+        ? "Showing API-loaded hidden vendors. There are more vendors to load."
+        : "All currently loaded hidden vendors are shown.";
+    } else {
+      $("pagination-note").textContent = state.hasMore
+        ? `Filters apply to ${state.restaurants.length} loaded vendors. There are more to explore.`
+        : `All ${state.restaurants.length} vendors loaded. You’re seeing every match.`;
+    }
 
-    if (!matches.length && !state.loading && !state.error) {
+    if (!matches.length && !loading && !error) {
       const searching = filters.query.trim().length > 0;
       let title = "No vendors here just yet.";
       let message = "Try a nearby street or a different delivery address.";
@@ -731,7 +835,15 @@ function render() {
         }
       }
 
-      if (state.view === "favourites") {
+      if (food) {
+        title = filters.query.trim() ? "No food matches just yet." : "What are you craving?";
+        message = filters.query.trim()
+          ? "Try a different food name or relax a vendor filter."
+          : "Type a dish, ingredient or food name to search near your address.";
+        if (state.view === "favourites") {
+          message += " Only saved, visible vendors are included in this view.";
+        }
+      } else if (state.view === "favourites") {
         title = state.favourites.size ? "No favourites match just yet." : "Your favourites start here.";
         message = state.favourites.size
           ? "Favourites appear after the API loads them. Try relaxing a filter or loading more vendors."
@@ -828,27 +940,41 @@ $("undo-hide").addEventListener("click", () => {
     restoreVendor(undoHiddenId);
   }
 });
+for (const mode of ["vendors", "food"]) {
+  $(`search-${mode}`).addEventListener("click", () => {
+    state.searchMode = mode;
+    state.pickId = null;
+    rememberFilters();
+    if (!syncFoodSearch()) render();
+  });
+}
 $("vendor-search").addEventListener("input", () => {
   rememberFilters();
-  render();
+  if (!syncFoodSearch()) render();
 });
 $("clear-vendor-search").addEventListener("click", () => {
   $("vendor-search").value = "";
   rememberFilters();
-  render();
+  if (!syncFoodSearch()) render();
   $("vendor-search").focus();
 });
 $("reset-filters").addEventListener("click", () => {
   $("filter-form").reset();
   $("vendor-search").value = "";
   rememberFilters();
-  render();
+  if (!syncFoodSearch()) render();
 });
 $("load-more").addEventListener("click", () => loadRestaurants());
-$("retry-button").addEventListener("click", () => retryLastRequest?.());
+$("retry-button").addEventListener("click", () => {
+  if (showingFood() && state.address) {
+    void foodSearch.load();
+  } else {
+    retryLastRequest?.();
+  }
+});
 
 function refreshHours() {
-  if (!document.hidden && state.restaurants.length) {
+  if (!document.hidden && (state.restaurants.length || foodSearch.state.groups.length)) {
     render();
   }
 }
@@ -858,6 +984,7 @@ document.addEventListener("visibilitychange", () => {
   refreshHours();
   if (!document.hidden) {
     refreshIfDue();
+    foodSearch.refreshIfDue();
   }
 });
 

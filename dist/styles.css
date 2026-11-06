@@ -90,6 +90,9 @@ legend { margin: 0 0 12px; padding: 0; font-size: 11px; font-weight: 600; }
 .vendor-views { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 17px; }
 .vendor-views button { padding: 8px 12px; border: 1px solid var(--line); border-radius: 7px; background: white; font-size: 11px; }
 .vendor-views button[aria-pressed="true"] { color: var(--orange); border-color: #eaa48c; background: var(--orange-light); }
+.search-modes { display: flex; gap: 4px; margin: 0 0 9px; }
+.search-modes button { padding: 6px 12px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--muted); font-size: 11px; }
+.search-modes button[aria-pressed="true"] { color: var(--ink); border-color: var(--line); background: white; font-weight: 600; }
 .view-note { margin: -5px 0 18px; color: var(--muted); font-size: 11px; line-height: 1.7; }
 .filters-paused #filter-form { opacity: .5; }
 .filters-paused button:disabled { cursor: default; }
@@ -157,6 +160,9 @@ legend { margin: 0 0 12px; padding: 0; font-size: 11px; font-weight: 600; }
 .card-rating .star { color: #bb862d; }
 .rating-count { color: #818679; font-size: 9px; font-weight: 400; margin-left: 3px; }
 .card-area { color: #7e8479; font-size: 10px; margin: 7px 0 13px; line-height: 1.5; }
+.food-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 7px; margin: 8px 0 10px; font-size: 15px; font-weight: 650; }
+.food-price s, .food-price small { color: var(--muted); font-size: 10px; font-weight: 400; }
+.food-vendor { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; font-size: 10px; line-height: 1.5; }
 .card-stats { display: flex; justify-content: space-between; gap: 4px; margin-top: auto; padding-top: 11px; border-top: 1px solid #efefe8; font-size: 10px; color: #5f685a; }
 .card-stats > span { display: flex; align-items: center; gap: 4px; }
 .card-stats svg { width: 13px; height: 13px; color: #8b9382; }

@@ -1,4 +1,4 @@
-import { normalizeVendor } from "./restaurant-model.js";
+import { normalizeFood, normalizeVendor } from "./restaurant-model.js";
 
 const BASE_URL = "https://api.chowdeck.com";
 const HEADERS = {
@@ -149,4 +149,24 @@ export async function getRestaurantPages(addressId, pageCount, signal) {
 
   signal.throwIfAborted();
   return { restaurants, hasMore: page.hasMore, cursor, pageCount: fetched };
+}
+
+export async function searchFood(addressId, query, signal) {
+  const payload = await request("/customer/search/product", {
+    signal,
+    cache: "no-store",
+    params: { address_id: addressId, query, type: "restaurant", page_size: 100 },
+  });
+  if (!Array.isArray(payload.data)) {
+    throw new Error("Chowdeck returned unexpected food search results. Please try again.");
+  }
+
+  return payload.data.flatMap((raw) => {
+    const vendor = normalizeVendor(raw);
+    const foods = Array.isArray(raw.products)
+      ? raw.products.map((product) => normalizeFood(product, vendor.currency)).filter(Boolean)
+      : [];
+
+    return foods.length ? [{ vendor, foods }] : [];
+  });
 }

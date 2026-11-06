@@ -24,7 +24,7 @@ Enter an address and choose a search suggestion. Available filters are:
 - Chowpass participation
 - Verified status
 
-**Ready when you are** and **Verified only** start on for a first visit and after **Reset**. Verified only requires `verification_status` to equal `verified`. Filters and sorting are remembered in this browser, including saved choices to turn off default filters.
+**Ready when you are** and **Trust issues welcome** (verified only) start on for a first visit and after **Reset**. The verified filter requires `verification_status` to equal `verified`. Filters and sorting are remembered in this browser, including saved choices to turn off default filters.
 
 **Closest** sorts by Chowdeck's numeric `distance` field, with missing distances last. Filters and sorting apply to the loaded restaurants. **Load more** retrieves the next 30; the result count and pagination note show whether more remain. Selecting a restaurant opens Chowdeck in a new tab.
 

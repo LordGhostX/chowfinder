@@ -157,7 +157,8 @@ legend { margin: 0 0 12px; padding: 0; font-size: 11px; font-weight: 600; }
 .pagination { text-align: center; margin-top: 27px; }
 .pagination p, .freshness { font-size: 10px; color: var(--muted); line-height: 1.7; }
 .pagination .secondary-button { min-width: 200px; }
-.freshness { text-align: center; margin: 22px 0 0; }
+.pagination p { margin: 12px 0 0; }
+.freshness { text-align: center; margin: 10px 0 0; }
 .loading-state { display: flex; align-items: center; justify-content: center; gap: 10px; height: 280px; color: var(--muted); font-size: 12px; }
 .spinner { width: 18px; height: 18px; border: 2px solid #e1e5d8; border-top-color: var(--orange); border-radius: 50%; animation: spin .9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

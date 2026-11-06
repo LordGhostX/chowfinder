@@ -115,7 +115,7 @@ export async function getRestaurants(addressId, cursor, signal) {
     params: {
       address_id: addressId,
       vendor_type: "restaurant",
-      page_size: 30,
+      page_size: 100,
       next_cursor: cursor,
     },
   });

@@ -53,6 +53,10 @@ h1 em { font-family: var(--serif); color: var(--orange); font-weight: 400; lette
 .filter-heading { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 0 0 20px; }
 .filter-heading h2 { display: flex; gap: 8px; align-items: center; margin: 0; font-size: 12px; font-weight: 650; }
 .filter-heading svg { width: 17px; }
+.filter-heading-actions { display: flex; align-items: center; gap: 12px; }
+.filter-toggle { display: none; border: 0; background: none; padding: 10px 0 10px 8px; color: var(--orange); font-size: 11px; align-items: center; gap: 5px; }
+.filter-toggle svg { width: 15px; height: 15px; }
+.filter-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
 .text-button { background: none; border: none; color: var(--orange); font-size: 11px; padding: 5px 0 5px 10px; }
 .settings-transfer { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 19px; }
 .settings-transfer h3 { margin: 0; font-size: 11px; font-weight: 600; }
@@ -207,3 +211,8 @@ legend { margin: 0 0 12px; padding: 0; font-size: 11px; font-weight: 600; }
 @media (max-width: 760px) { .topbar { height: 72px; padding: 0 5%; } .brand { font-size: 22px; } .brand-icon { height: 34px; width: 34px; } .source-link { font-size: 10px; gap: 6px; } .intro { padding: 30px 0 25px; } h1 { font-size: 31px; letter-spacing: -1.2px; max-width: 290px; } .intro-stamp { width: 75px; height: 75px; margin: 0; flex-shrink: 0; } .intro-stamp span { font-size: 6px; } .intro-stamp svg { width: 34px; height: 34px; } .eyebrow { font-size: 8px; } .address-panel { grid-template-columns: 1fr; padding: 15px; gap: 15px; } .primary-button { padding: 0 12px; gap: 10px; font-size: 11px; } .workspace { display: block; padding-top: 23px; } .filters { position: static; max-height: none; overflow: visible; padding: 17px; margin-bottom: 26px; } #filter-form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; } #filter-form fieldset:first-child { grid-column: 1 / -1; } fieldset { margin-top: 17px; } .rating-options { gap: 8px; } .rating-options span { font-size: 11px; } .filter-heading { padding-bottom: 13px; } .toggle-group { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 20px; } .toggle-row { padding-top: 16px; } .toggle-row small { font-size: 9px; } .results-toolbar { align-items: start; gap: 10px; } .results-toolbar h2 { font-size: 17px; } .sort-wrap { flex-direction: column; align-items: flex-end; gap: 5px; padding-top: 2px; } .sort-wrap select { font-size: 10px; max-width: 120px; } .restaurant-grid { gap: 15px 12px; } .card-image-link { height: 130px; } .card-body { padding: 12px 10px 11px; } .card-title-row { display: block; } .card-title { font-size: 11px; } .card-rating { margin-top: 5px; } .card-area { margin: 6px 0 10px; font-size: 9px; } .card-stats { font-size: 9px; flex-wrap: wrap; gap: 8px; } .offer-badge { font-size: 8px; } .footer { flex-wrap: wrap; gap: 12px; padding-top: 20px; } .footer p { font-size: 9px; } .footer-link { display: none; } .empty-state { min-height: 350px; padding: 24px 15px; } .empty-state h3 { font-size: 25px; } }
 @media (max-width: 370px) { .restaurant-grid { grid-template-columns: 1fr; } .card-image-link { height: 185px; } .toggle-group { grid-template-columns: 1fr; gap: 0; } .intro-stamp { display: none; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition: none !important; } }
+@media (max-width: 760px) {
+  .filter-toggle { display: flex; min-height: 44px; }
+  .filters:not(.is-expanded) .filter-content { display: none; }
+  .filters:not(.is-expanded) .filter-heading { border-bottom: 0; padding-bottom: 0; }
+}

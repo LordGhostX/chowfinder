@@ -208,7 +208,9 @@ function closeSettingsNotice() {
   const dismissFocused = document.activeElement === $("dismiss-settings-notice");
   $("settings-notice").hidden = true;
   if (dismissFocused) {
-    $(settingsNoticeButton).focus();
+    const button = $(settingsNoticeButton);
+    const target = button.getClientRects().length ? button : $("toggle-filters");
+    target.focus();
   }
 }
 
@@ -1114,6 +1116,14 @@ $("clear-vendor-search").addEventListener("click", () => {
   rememberFilters();
   if (!syncFoodSearch()) render();
   $("vendor-search").focus();
+});
+$("toggle-filters").addEventListener("click", () => {
+  const toggle = $("toggle-filters");
+  const expanded = toggle.getAttribute("aria-expanded") !== "true";
+  toggle.setAttribute("aria-expanded", String(expanded));
+  toggle.setAttribute("aria-label", expanded ? "Hide preferences" : "Show preferences");
+  toggle.querySelector("span").textContent = expanded ? "Hide" : "Show";
+  document.querySelector(".filters").classList.toggle("is-expanded", expanded);
 });
 $("reset-filters").addEventListener("click", () => {
   $("filter-form").reset();

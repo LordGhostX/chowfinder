@@ -43,80 +43,88 @@
 
       <div class="workspace">
         <aside class="filters" aria-labelledby="filters-title">
-          <div class="filter-heading"><h2 id="filters-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6m8 4v6" /></svg> Your preferences</h2><button type="button" id="reset-filters" class="text-button">Reset</button></div>
-          <form id="filter-form">
-            <fieldset><legend>Minimum rating</legend><div class="rating-options" id="rating-options">
-              <label><input type="radio" name="rating" value="0" checked /><span>Any</span></label>
-              <label><input type="radio" name="rating" value="3.5" /><span>3.5 <b>★</b></span></label>
-              <label><input type="radio" name="rating" value="4" /><span>4.0 <b>★</b></span></label>
-              <label><input type="radio" name="rating" value="4.5" /><span>4.5 <b>★</b></span></label>
-            </div></fieldset>
-            <fieldset><legend>Maximum delivery fee</legend><label class="select-wrap"><span class="sr-only">Maximum delivery fee</span><select id="fee-filter"><option value="">Any delivery fee</option><option value="0">Free delivery</option><option value="500">Up to ₦500</option><option value="1000">Up to ₦1,000</option><option value="1500">Up to ₦1,500</option><option value="2000">Up to ₦2,000</option><option value="3000">Up to ₦3,000</option></select><span aria-hidden="true">⌄</span></label></fieldset>
-            <fieldset id="meal-budget-field" hidden>
-              <legend>Meal budget</legend>
-              <label class="select-wrap">
-                <span class="sr-only">Maximum meal price</span>
-                <select id="meal-budget-filter" aria-describedby="meal-budget-help">
-                  <option value="">Any meal price</option>
-                  <option value="2000">Up to ₦2,000</option>
-                  <option value="3000">Up to ₦3,000</option>
-                  <option value="5000">Up to ₦5,000</option>
-                  <option value="7500">Up to ₦7,500</option>
-                  <option value="10000">Up to ₦10,000</option>
-                  <option value="15000">Up to ₦15,000</option>
-                </select>
-                <span aria-hidden="true">⌄</span>
-              </label>
-              <p id="meal-budget-help" class="field-help">Listed item price only. Delivery and extras aren’t included.</p>
-            </fieldset>
-            <fieldset>
-              <legend>Stays open for at least</legend>
-              <label class="select-wrap">
-                <span class="sr-only">Minimum time before closing</span>
-                <select id="closing-filter" aria-describedby="closing-help">
-                  <option value="">Any closing time</option>
-                  <option value="30">30 minutes</option>
-                  <option value="60">1 hour</option>
-                  <option value="120">2 hours</option>
-                  <option value="180">3 hours</option>
-                  <option value="240">4 hours</option>
-                </select>
-                <span aria-hidden="true">⌄</span>
-              </label>
-              <p id="closing-help" class="field-help">Open and available, with known closing hours.</p>
-            </fieldset>
-            <div class="toggle-group">
-              <label class="toggle-row" for="discount-filter">
-                <span><strong>A little deal, please</strong><small>Vendors with discounts</small></span>
-                <input type="checkbox" id="discount-filter" role="switch" />
-                <span class="toggle-track" aria-hidden="true"></span>
-              </label>
-              <label class="toggle-row" for="open-filter">
-                <span><strong>Ready when you are</strong><small>Open and available now</small></span>
-                <input type="checkbox" id="open-filter" role="switch" checked />
-                <span class="toggle-track" aria-hidden="true"></span>
-              </label>
-              <label class="toggle-row" for="chowpass-filter">
-                <span><strong>Pass me the perks</strong><small>Chowpass vendors only</small></span>
-                <input type="checkbox" id="chowpass-filter" role="switch" />
-                <span class="toggle-track" aria-hidden="true"></span>
-              </label>
-              <label class="toggle-row" for="verified-filter">
-                <span><strong>Trust issues welcome</strong><small>Verified vendors only</small></span>
-                <input type="checkbox" id="verified-filter" role="switch" checked />
-                <span class="toggle-track" aria-hidden="true"></span>
-              </label>
+          <div class="filter-heading">
+            <h2 id="filters-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6m8 4v6" /></svg> Your preferences</h2>
+            <div class="filter-heading-actions">
+              <button type="button" id="reset-filters" class="text-button">Reset</button>
+              <button type="button" id="toggle-filters" class="filter-toggle" aria-expanded="false" aria-controls="filter-content" aria-label="Show preferences"><span>Show</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg></button>
             </div>
-          </form>
-          <div class="settings-transfer" aria-label="Back up your settings">
-            <h3>Your settings, to go</h3>
-            <p id="settings-help">Your address, preferences, favourites and hidden vendors. Import replaces your saved settings.</p>
-            <div class="settings-buttons">
-              <button type="button" id="export-settings" aria-describedby="settings-help">Export JSON <span aria-hidden="true">↓</span></button>
-              <button type="button" id="import-settings" aria-describedby="settings-help">Import JSON <span aria-hidden="true">↑</span></button>
+          </div>
+          <div id="filter-content" class="filter-content">
+            <form id="filter-form">
+              <fieldset><legend>Minimum rating</legend><div class="rating-options" id="rating-options">
+                <label><input type="radio" name="rating" value="0" checked /><span>Any</span></label>
+                <label><input type="radio" name="rating" value="3.5" /><span>3.5 <b>★</b></span></label>
+                <label><input type="radio" name="rating" value="4" /><span>4.0 <b>★</b></span></label>
+                <label><input type="radio" name="rating" value="4.5" /><span>4.5 <b>★</b></span></label>
+              </div></fieldset>
+              <fieldset><legend>Maximum delivery fee</legend><label class="select-wrap"><span class="sr-only">Maximum delivery fee</span><select id="fee-filter"><option value="">Any delivery fee</option><option value="0">Free delivery</option><option value="500">Up to ₦500</option><option value="1000">Up to ₦1,000</option><option value="1500">Up to ₦1,500</option><option value="2000">Up to ₦2,000</option><option value="3000">Up to ₦3,000</option></select><span aria-hidden="true">⌄</span></label></fieldset>
+              <fieldset id="meal-budget-field" hidden>
+                <legend>Meal budget</legend>
+                <label class="select-wrap">
+                  <span class="sr-only">Maximum meal price</span>
+                  <select id="meal-budget-filter" aria-describedby="meal-budget-help">
+                    <option value="">Any meal price</option>
+                    <option value="2000">Up to ₦2,000</option>
+                    <option value="3000">Up to ₦3,000</option>
+                    <option value="5000">Up to ₦5,000</option>
+                    <option value="7500">Up to ₦7,500</option>
+                    <option value="10000">Up to ₦10,000</option>
+                    <option value="15000">Up to ₦15,000</option>
+                  </select>
+                  <span aria-hidden="true">⌄</span>
+                </label>
+                <p id="meal-budget-help" class="field-help">Listed item price only. Delivery and extras aren’t included.</p>
+              </fieldset>
+              <fieldset>
+                <legend>Stays open for at least</legend>
+                <label class="select-wrap">
+                  <span class="sr-only">Minimum time before closing</span>
+                  <select id="closing-filter" aria-describedby="closing-help">
+                    <option value="">Any closing time</option>
+                    <option value="30">30 minutes</option>
+                    <option value="60">1 hour</option>
+                    <option value="120">2 hours</option>
+                    <option value="180">3 hours</option>
+                    <option value="240">4 hours</option>
+                  </select>
+                  <span aria-hidden="true">⌄</span>
+                </label>
+                <p id="closing-help" class="field-help">Open and available, with known closing hours.</p>
+              </fieldset>
+              <div class="toggle-group">
+                <label class="toggle-row" for="discount-filter">
+                  <span><strong>A little deal, please</strong><small>Vendors with discounts</small></span>
+                  <input type="checkbox" id="discount-filter" role="switch" />
+                  <span class="toggle-track" aria-hidden="true"></span>
+                </label>
+                <label class="toggle-row" for="open-filter">
+                  <span><strong>Ready when you are</strong><small>Open and available now</small></span>
+                  <input type="checkbox" id="open-filter" role="switch" checked />
+                  <span class="toggle-track" aria-hidden="true"></span>
+                </label>
+                <label class="toggle-row" for="chowpass-filter">
+                  <span><strong>Pass me the perks</strong><small>Chowpass vendors only</small></span>
+                  <input type="checkbox" id="chowpass-filter" role="switch" />
+                  <span class="toggle-track" aria-hidden="true"></span>
+                </label>
+                <label class="toggle-row" for="verified-filter">
+                  <span><strong>Trust issues welcome</strong><small>Verified vendors only</small></span>
+                  <input type="checkbox" id="verified-filter" role="switch" checked />
+                  <span class="toggle-track" aria-hidden="true"></span>
+                </label>
+              </div>
+            </form>
+            <div class="settings-transfer" aria-label="Back up your settings">
+              <h3>Your settings, to go</h3>
+              <p id="settings-help">Your address, preferences, favourites and hidden vendors. Import replaces your saved settings.</p>
+              <div class="settings-buttons">
+                <button type="button" id="export-settings" aria-describedby="settings-help">Export JSON <span aria-hidden="true">↓</span></button>
+                <button type="button" id="import-settings" aria-describedby="settings-help">Import JSON <span aria-hidden="true">↑</span></button>
+              </div>
+              <input type="file" id="settings-file" accept=".json,application/json" aria-label="Import Chowfinder settings JSON" hidden />
+              <p id="settings-status" class="settings-status" role="status"></p>
             </div>
-            <input type="file" id="settings-file" accept=".json,application/json" aria-label="Import Chowfinder settings JSON" hidden />
-            <p id="settings-status" class="settings-status" role="status"></p>
           </div>
         </aside>
 

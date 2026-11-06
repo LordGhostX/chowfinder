@@ -818,12 +818,6 @@ function renderViews() {
 
   $("view-favourites").textContent = `Favourites (${state.favourites.size})`;
   $("view-hidden").textContent = `Hidden vendors (${state.hidden.size})`;
-  $("view-note").hidden = state.view === "all";
-  $("view-note").textContent = managingHidden
-    ? "Only API-loaded hidden vendors appear here. Search and preference filters are paused so you can restore them."
-    : showingFood()
-      ? "Food from API-loaded favourites appears here. Your filters still apply, and hidden vendors stay hidden."
-      : "Only API-loaded favourites appear here. Your filters still apply, and hidden vendors stay hidden. Load more to find saved vendors from later pages.";
   $("filter-form").inert = managingHidden;
   $("meal-budget-field").hidden = !showingFood();
   document.querySelector(".filters").classList.toggle("filters-paused", managingHidden);

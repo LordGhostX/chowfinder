@@ -307,7 +307,8 @@ function card(restaurant) {
   imageLink.href = restaurant.url;
   imageLink.target = "_blank";
   imageLink.rel = "noopener noreferrer";
-  imageLink.setAttribute("aria-label", `View ${restaurant.name} on Chowdeck`);
+  const membershipLabel = restaurant.chowpass ? ", Chowpass enabled" : "";
+  imageLink.setAttribute("aria-label", `View ${restaurant.name} on Chowdeck${membershipLabel}`);
   const fallback = () => {
     imageLink.querySelector("img")?.remove();
     imageLink.prepend(element("span", "image-fallback", restaurant.name.slice(0, 1)));
@@ -331,8 +332,17 @@ function card(restaurant) {
     imageLink.append(offer);
   }
 
+  const badges = element("div", "card-badges");
   if (!restaurant.open || restaurant.unavailable) {
-    imageLink.append(element("span", "closed-label", restaurant.open ? "Unavailable now" : "Closed now"));
+    badges.append(element("span", "closed-label", restaurant.open ? "Unavailable now" : "Closed now"));
+  }
+
+  if (restaurant.chowpass) {
+    badges.append(element("span", "chowpass-badge", "Chowpass"));
+  }
+
+  if (badges.childElementCount) {
+    imageLink.append(badges);
   }
 
   const body = element("div", "card-body");

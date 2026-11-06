@@ -5,6 +5,7 @@ import {
   filterRestaurants,
   localClock,
   normalizeVendor,
+  openingWindow,
   parseVendorIds,
   sortRestaurants,
   vendorsInView,
@@ -242,4 +243,35 @@ test("overnight hours carry from Saturday to Sunday, and 2400 closes at midnight
     dayOffset: 1,
     minutesRemaining: 30,
   });
+});
+
+test("next opening uses today's future hours or the next scheduled weekday across closed days and week boundaries", () => {
+  const restaurant = vendor({ is_open: false, available_hours: {
+    Friday: { opening: "1000", closing: "2200" },
+    Saturday: { is_open: false },
+    Sunday: { opening: "1800", closing: "0200" },
+  } });
+
+  assert.deepEqual(openingWindow(restaurant, { weekday: 5, minutes: 540 }), { opensAt: 600, dayOffset: 0 });
+  assert.deepEqual(openingWindow(restaurant, { weekday: 5, minutes: 1320 }), { opensAt: 1080, dayOffset: 2 });
+  assert.deepEqual(openingWindow(restaurant, { weekday: 6, minutes: 600 }), { opensAt: 1080, dayOffset: 1 });
+  assert.deepEqual(openingWindow(restaurant, { weekday: 0, minutes: 1200 }), { opensAt: 600, dayOffset: 5 });
+  assert.equal(restaurant.open, false);
+});
+
+test("next opening skips elapsed overnight openings and finds weekly-only schedules without inventing unknown hours", () => {
+  const overnight = vendor({ available_hours: { default: { opening: "1800", closing: "0200" } } });
+  assert.deepEqual(openingWindow(overnight, { weekday: 5, minutes: 60 }), { opensAt: 1080, dayOffset: 0 });
+  assert.deepEqual(openingWindow(overnight, { weekday: 5, minutes: 1380 }), { opensAt: 1080, dayOffset: 1 });
+  const weekly = vendor({ available_hours: { Friday: { opening: "0900", closing: "2100" } } });
+  assert.deepEqual(openingWindow(weekly, { weekday: 5, minutes: 600 }), { opensAt: 540, dayOffset: 7 });
+  assert.equal(openingWindow(vendor(), { weekday: 5, minutes: 600 }), null);
+});
+
+test("preorder badges follow the API availability flag rather than guessing from vendor class", () => {
+  assert.equal(vendor({ can_pre_order: true }).preorder, true);
+  assert.equal(vendor({ can_pre_order: 1 }).preorder, true);
+  assert.equal(vendor({ can_pre_order: false, vendor_class: "preorder" }).preorder, false);
+  assert.equal(vendor({ can_pre_order: "true" }).preorder, false);
+  assert.equal(vendor().preorder, false);
 });

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { searchFood } from "../dist/api.js";
 import { FoodSearch } from "../dist/food-search.js";
-import { foodMatchesFilters, normalizeFood } from "../dist/restaurant-model.js";
+import { foodMatchesFilters, normalizeFood, sortFoodsByPrice } from "../dist/restaurant-model.js";
 
 function response(id, foodChanges = {}) {
   return {
@@ -29,6 +29,24 @@ function deferred() {
 }
 
 const settle = () => new Promise((resolve) => setImmediate(resolve));
+
+test("cheapest meal compares current prices across vendors, keeps free items, and puts unknown prices last", () => {
+  const item = (id, vendorId, changes) => ({
+    vendor: { id: vendorId },
+    food: normalizeFood({ id, name: "Rice", ...changes }, "NGN"),
+  });
+  const meals = [
+    item(1, 1, { price: 500000 }),
+    item(2, 1, { price: 300000 }),
+    item(3, 2, { price: 400000, discount_price: 200000 }),
+    item(4, 3, { price: null }),
+    item(5, 4, { price: 0 }),
+    item(6, 5, { price: 300000 }),
+  ];
+
+  assert.deepEqual(sortFoodsByPrice(meals).map((item) => item.food.id), [5, 3, 2, 6, 1, 4]);
+  assert.deepEqual(meals.map((item) => item.food.id), [1, 2, 3, 4, 5, 6]);
+});
 
 test("meal budgets use the current item price, include the limit and free items, and compose with stock availability", () => {
   const item = (id, changes = {}) => normalizeFood({ id, name: "Rice", price: 200000, in_stock: true, ...changes }, "NGN");

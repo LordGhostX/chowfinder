@@ -50,6 +50,11 @@ test("backups support no address and deduplicate vendor IDs without creating ven
   assert.deepEqual(parsed.hiddenVendors, []);
 });
 
+test("the cheapest meal sort survives a settings backup and restore", () => {
+  const preferences = { ...settings().preferences, sort: "meal-price" };
+  assert.equal(parseSettingsBackup(encode({ preferences })).preferences.sort, "meal-price");
+});
+
 test("invalid or incompatible files are rejected before settings can be restored", () => {
   const preferences = settings().preferences;
   const invalidFiles = [

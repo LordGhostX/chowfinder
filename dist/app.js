@@ -6,7 +6,9 @@ import {
   filterRestaurants,
   foodMatchesFilters,
   localClock,
+  openingWindow,
   parseVendorIds,
+  sortFoodsByPrice,
   sortRestaurants,
   vendorsInView,
 } from "./restaurant-model.js";
@@ -581,19 +583,28 @@ function closingTime(minutes) {
   return `${hour % 12 || 12}:${String(minutes % 60).padStart(2, "0")} ${hour >= 12 ? "pm" : "am"}`;
 }
 
-function closingText(restaurant, clock) {
-  const window = closingWindow(restaurant, clock);
-  if (restaurant.open && window) {
-    return `Closes at ${closingTime(window.closesAt)}${window.dayOffset ? " tomorrow" : ""}`;
+function hoursText(restaurant, clock) {
+  if (restaurant.open) {
+    const window = closingWindow(restaurant, clock);
+    return window
+      ? `Closes at ${closingTime(window.closesAt)}${window.dayOffset ? " tomorrow" : ""}`
+      : "Closing time unavailable";
   }
 
-  const hours = restaurant.hours[clock.weekday];
-  if (!hours) {
-    return "Closing time unavailable";
+  const window = openingWindow(restaurant, clock);
+  if (!window) {
+    return "Opening time unavailable";
   }
 
-  const tomorrow = hours.closing < hours.opening || hours.closing === 1440;
-  return `Scheduled close: ${closingTime(hours.closing)}${tomorrow ? " tomorrow" : ""}`;
+  let day = "";
+  if (window.dayOffset === 1) {
+    day = " tomorrow";
+  } else if (window.dayOffset > 1) {
+    const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    day = ` ${window.dayOffset === 7 ? "next " : ""}${weekdays[(clock.weekday + window.dayOffset) % 7]}`;
+  }
+
+  return `Opens${day} at ${closingTime(window.opensAt)}`;
 }
 
 function card(restaurant, clock, food = null) {
@@ -730,7 +741,7 @@ function card(restaurant, clock, food = null) {
 
   const status = element("div", `card-status${available ? "" : " unavailable"}`);
   status.append(element("span", "status-dot"), document.createTextNode(statusText));
-  const closing = element("p", "card-closing", closingText(restaurant, clock));
+  const closing = element("p", "card-closing", hoursText(restaurant, clock));
   closing.title = `Scheduled hours in ${state.currency === "GHS" ? "Ghana" : "Nigeria"} local time. Availability may change.`;
   const availability = element("div", "card-availability");
   availability.append(status, closing);
@@ -750,7 +761,12 @@ function card(restaurant, clock, food = null) {
     body.append(price, vendor);
   }
 
-  body.append(element("p", "card-area", restaurant.location || "Vendor"), stats, availability);
+  const area = element("p", "card-area");
+  area.append(element("span", "", restaurant.location || "Vendor"));
+  if (restaurant.preorder) {
+    area.append(element("span", "preorder-badge", "Preorder available"));
+  }
+  body.append(area, stats, availability);
   article.append(media, body);
   return article;
 }
@@ -848,8 +864,15 @@ function render() {
   const filters = preferences();
   const now = Date.now();
   const clock = addressClock(now);
-  const order = $("sort-order").value;
   const food = showingFood();
+  $("meal-price-sort").hidden = !food;
+  $("meal-price-sort").disabled = !food;
+  if (!food && $("sort-order").value === "meal-price") {
+    $("sort-order").value = "recommended";
+    rememberFilters();
+  }
+
+  const order = $("sort-order").value;
   const loading = food ? foodSearch.state.loading || (!state.address && state.loading) : state.loading;
   const error = food && state.address ? foodSearch.state.error : state.error;
   const matches = sortRestaurants(matchingVendors(filters, clock), order, now);
@@ -860,8 +883,18 @@ function render() {
     matches.unshift(pick);
   }
 
-  const foods = food ? matches.flatMap((vendor) => groups.get(vendor.id)
+  let foods = food ? matches.flatMap((vendor) => groups.get(vendor.id)
     .filter((item) => foodMatchesFilters(item, filters)).map((item) => ({ vendor, food: item }))) : [];
+  if (food && order === "meal-price") {
+    foods = sortFoodsByPrice(foods);
+    if (pick) {
+      foods = [
+        ...foods.filter((item) => item.vendor.id === pick.id),
+        ...foods.filter((item) => item.vendor.id !== pick.id),
+      ];
+    }
+  }
+
   state.pickId = pick?.id ?? null;
   renderPick(pick);
   $("pick-for-me").disabled = matches.length === 0 || state.view === "hidden";

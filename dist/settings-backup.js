@@ -10,7 +10,7 @@ const OPTIONS = {
   fee: [null, 0, 500, 1000, 1500, 2000, 3000],
   mealBudget: [null, 2000, 3000, 5000, 7500, 10000, 15000],
   closing: [null, 30, 60, 120, 180, 240],
-  sort: ["recommended", "distance", "rating", "reviews", "discount", "fee", "time"],
+  sort: ["recommended", "distance", "rating", "reviews", "discount", "fee", "time", "meal-price"],
   searchMode: ["vendors", "food"],
 };
 

@@ -119,6 +119,17 @@ export function closingWindow(restaurant, clock) {
   return null;
 }
 
+export function openingWindow(restaurant, clock) {
+  for (let dayOffset = 0; dayOffset <= 7; dayOffset += 1) {
+    const hours = restaurant.hours[(clock.weekday + dayOffset) % 7];
+    if (hours && dayOffset * 1440 + hours.opening > clock.minutes) {
+      return { opensAt: hours.opening, dayOffset };
+    }
+  }
+
+  return null;
+}
+
 export function normalizeVendor(raw) {
   if (!raw || !Number.isSafeInteger(raw.id) || typeof raw.name !== "string") {
     throw new Error("Chowdeck returned an unexpected vendor format. Please try again.");
@@ -153,6 +164,7 @@ export function normalizeVendor(raw) {
     unavailable: raw.is_temporarily_unavailable === true || raw.is_temporarily_unavailable === 1,
     chowpass: raw.is_chowpass_vendor === true || raw.is_chowpass_vendor === 1,
     verified: raw.verification_status === "verified",
+    preorder: raw.can_pre_order === true || raw.can_pre_order === 1,
     offer: typeof raw.discount_text === "string" ? raw.discount_text.trim() : "",
     hasDiscount: Boolean(raw.discount_text?.trim()) || (Array.isArray(raw.discounts) && raw.discounts.length > 0),
     discountOffers: normalizeDiscounts(raw.discounts),
@@ -197,6 +209,10 @@ export function foodMatchesFilters(food, preferences) {
   }
 
   return !preferences.open || food.inStock === true;
+}
+
+export function sortFoodsByPrice(results) {
+  return [...results].sort((left, right) => (left.food.price ?? Infinity) - (right.food.price ?? Infinity));
 }
 
 export function parseVendorIds(serialized) {

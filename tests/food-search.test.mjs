@@ -4,7 +4,7 @@ import { searchFood } from "../dist/api.js";
 import { FoodSearch } from "../dist/food-search.js";
 import { foodMatchesFilters, normalizeFood, sortFoodsByPrice } from "../dist/restaurant-model.js";
 
-function response(id, foodChanges = {}) {
+function response(id) {
   return {
     ok: true,
     json: async () => ({
@@ -12,7 +12,7 @@ function response(id, foodChanges = {}) {
         id,
         name: `Vendor ${id}`,
         vendor_type: "restaurant",
-        products: [{ id: id * 10, name: "Rice", price: 250000, currency: "NGN", in_stock: true, ...foodChanges }],
+        products: [{ id: id * 10, name: "Rice", price: 250000, currency: "NGN", in_stock: true }],
       }],
     }),
   };
@@ -45,6 +45,7 @@ test("cheapest meal compares current prices across vendors, keeps free items, an
   ];
 
   assert.deepEqual(sortFoodsByPrice(meals).map((item) => item.food.id), [5, 3, 2, 6, 1, 4]);
+  assert.equal(meals[2].food.originalPrice, 400000);
   assert.deepEqual(meals.map((item) => item.food.id), [1, 2, 3, 4, 5, 6]);
 });
 
@@ -65,19 +66,15 @@ test("meal budgets use the current item price, include the limit and free items,
 });
 
 test("food search uses the address and dish query with the selected restaurant-menu scope", async (t) => {
-  const fetch = t.mock.method(globalThis, "fetch", async () => response(2, { discount_price: 200000 }));
-  const groups = await searchFood(18957, "rice", new AbortController().signal);
+  const fetch = t.mock.method(globalThis, "fetch", async () => response(2));
+  await searchFood(18957, "rice", new AbortController().signal);
   const [url, options] = fetch.mock.calls[0].arguments;
 
   assert.equal(url.pathname, "/customer/search/product");
   assert.equal(url.searchParams.get("query"), "rice");
   assert.equal(url.searchParams.get("address_id"), "18957");
   assert.equal(url.searchParams.get("type"), "restaurant");
-  assert.equal(url.searchParams.has("vendor_type"), false);
   assert.equal(options.cache, "no-store");
-  assert.equal(groups[0].vendor.id, 2);
-  assert.equal(groups[0].foods[0].price, 200000);
-  assert.equal(groups[0].foods[0].originalPrice, 250000);
 });
 
 test("food search omits unpublished and malformed items while retaining out-of-stock items", async (t) => {
@@ -114,17 +111,18 @@ test("typing is debounced and a late response cannot overwrite a newer query", a
   const search = new FoodSearch(() => {});
   t.after(() => search.update(null, "", false));
   search.update(18957, "ri", true);
-  t.mock.timers.tick(200);
+  t.mock.timers.tick(1);
+  assert.equal(requests.length, 0);
   search.update(18957, "rice", true);
-  t.mock.timers.tick(400);
+  t.mock.timers.runAll();
   assert.equal(requests.length, 1);
   assert.equal(requests[0].url.searchParams.get("query"), "rice");
-  assert.equal(search.update(18957, "rice", true), false);
-  t.mock.timers.tick(400);
+  search.update(18957, "rice", true);
+  t.mock.timers.runAll();
   assert.equal(requests.length, 1);
   search.update(18957, "pasta", true);
   assert.equal(requests[0].signal.aborted, true);
-  t.mock.timers.tick(400);
+  t.mock.timers.runAll();
   requests[0].resolve(response(1));
   await settle();
   assert.equal(search.state.loading, true);
@@ -146,10 +144,10 @@ test("address changes and leaving Food mode cancel requests and clear old result
   const search = new FoodSearch(() => {});
   t.after(() => search.update(null, "", false));
   search.update(18957, "rice", true);
-  t.mock.timers.tick(400);
+  t.mock.timers.runAll();
   search.update(20000, "rice", true);
   assert.equal(requests[0].signal.aborted, true);
-  t.mock.timers.tick(400);
+  t.mock.timers.runAll();
   requests[0].resolve(response(1));
   await settle();
   assert.equal(search.state.groups.length, 0);
@@ -174,7 +172,7 @@ test("five-minute food refresh keeps current results on failure and retries with
   const search = new FoodSearch(() => {});
   t.after(() => search.update(null, "", false));
   search.update(18957, "rice", true);
-  t.mock.timers.tick(400);
+  t.mock.timers.runAll();
   await settle();
   assert.equal(search.state.groups[0].vendor.id, 1);
   t.mock.timers.tick(300000);

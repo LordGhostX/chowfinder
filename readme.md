@@ -17,10 +17,10 @@ Open [localhost:4173](http://127.0.0.1:4173). The app is static HTML, CSS and Ja
 ## Features
 
 - Search vendor names or restaurant menus using the shared **Vendors / Food** search bar.
-- Filter by rating, delivery fee, meal budget (Food mode), discounts, opening hours, Chowpass and verification. Open and verified start on by default.
-- Sort by distance, rating, reviews, discount, delivery fee or delivery time. Food mode also offers **Cheapest meal**.
+- Filter by rating, delivery fee, meal budget (Food mode), discounts, time before closing, Chowpass and verification. Open and verified start on by default.
+- Sort by distance, rating, reviews, item discount percentage, delivery fee or delivery time. Food mode also offers **Cheapest meal**.
 - Save favourites, hide vendors, or let **Pick for me** choose from your matches.
-- See scheduled opening/closing times and preorder availability. Links open the vendor on Chowdeck.
+- See scheduled opening/closing times and preorder availability. Unknown or conflicting hours show as unavailable. Links open the vendor on Chowdeck.
 
 ## Data and saved settings
 

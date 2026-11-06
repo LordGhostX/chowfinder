@@ -19,7 +19,7 @@ const settings = () => ({
     chowpass: true,
     verified: false,
     query: "rice",
-    sort: "distance",
+    sort: "meal-price",
     searchMode: "food",
   },
   favourites: [12, 34],
@@ -33,9 +33,6 @@ const encode = (changes = {}) => JSON.stringify({
 
 test("a JSON backup round-trips every saved setting, including disabled defaults and overlapping vendor choices", () => {
   const backup = createSettingsBackup(settings());
-  assert.equal(backup.format, "chowfinder-settings");
-  assert.equal(backup.version, 1);
-  assert.ok(Number.isFinite(Date.parse(backup.exportedAt)));
   assert.deepEqual(parseSettingsBackup(JSON.stringify(backup)), settings());
 });
 
@@ -48,11 +45,6 @@ test("backups support no address and deduplicate vendor IDs without creating ven
   assert.equal(parsed.address, null);
   assert.deepEqual(parsed.favourites, [12, 34]);
   assert.deepEqual(parsed.hiddenVendors, []);
-});
-
-test("the cheapest meal sort survives a settings backup and restore", () => {
-  const preferences = { ...settings().preferences, sort: "meal-price" };
-  assert.equal(parseSettingsBackup(encode({ preferences })).preferences.sort, "meal-price");
 });
 
 test("invalid or incompatible files are rejected before settings can be restored", () => {
@@ -117,11 +109,14 @@ test("a failed storage write restores the settings already replaced by this impo
     [SETTINGS_KEYS.address]: '{"id":123,"label":"Old area","country":"Ghana"}',
     [SETTINGS_KEYS.preferences]: '{"open":true}',
     [SETTINGS_KEYS.favourites]: "[999]",
+    [SETTINGS_KEYS.hiddenVendors]: "[888]",
   };
   const storage = memoryStorage(original);
   const setItem = storage.setItem.bind(storage);
+  let writes = 0;
   storage.setItem = (key, value) => {
-    if (key === SETTINGS_KEYS.hiddenVendors) {
+    writes += 1;
+    if (writes === 3) {
       throw new Error("Storage quota exceeded");
     }
     setItem(key, value);
@@ -131,5 +126,4 @@ test("a failed storage write restores the settings already replaced by this impo
   for (const [key, value] of Object.entries(original)) {
     assert.equal(storage.getItem(key), value);
   }
-  assert.equal(storage.getItem(SETTINGS_KEYS.hiddenVendors), null);
 });

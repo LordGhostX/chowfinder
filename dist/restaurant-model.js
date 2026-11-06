@@ -65,8 +65,9 @@ function normalizeDiscounts(raw) {
   }
 
   return raw.flatMap((offer) => {
-    const percent = numberOrNull(offer?.value);
-    if (offer?.type !== "percentage_off" || percent === null || percent <= 0 || percent > 100
+    const value = numberOrNull(offer?.value);
+    if (typeof offer?.type !== "string" || value === null || value <= 0
+      || (offer.type === "percentage_off" && value > 100)
       || ![true, 1].includes(offer.is_active) || ![true, 1].includes(offer.is_published)) {
       return [];
     }
@@ -77,8 +78,19 @@ function normalizeDiscounts(raw) {
       return [];
     }
 
+    const itemOffer = ["menus", "menucategories"].includes(offer.target_service);
+    const percent = offer.type === "percentage_off" && itemOffer ? value : 0;
     return [{ percent, startsAt, expiresAt }];
   });
+}
+
+function discountIsActive(offer, now) {
+  return (offer.startsAt === null || offer.startsAt <= now)
+    && (offer.expiresAt === null || offer.expiresAt > now);
+}
+
+export function hasDiscount(restaurant, now = Date.now()) {
+  return Boolean(restaurant.offer) || restaurant.discountOffers.some((offer) => discountIsActive(offer, now));
 }
 
 export function localClock(now = Date.now(), timeZone = "Africa/Lagos") {
@@ -166,7 +178,6 @@ export function normalizeVendor(raw) {
     verified: raw.verification_status === "verified",
     preorder: raw.can_pre_order === true || raw.can_pre_order === 1,
     offer: typeof raw.discount_text === "string" ? raw.discount_text.trim() : "",
-    hasDiscount: Boolean(raw.discount_text?.trim()) || (Array.isArray(raw.discounts) && raw.discounts.length > 0),
     discountOffers: normalizeDiscounts(raw.discounts),
     hours: normalizeHours(raw.available_hours),
   };
@@ -232,6 +243,7 @@ export function vendorsInView(vendors, view, favourites, hidden) {
 
 export function filterRestaurants(restaurants, preferences, clock = localClock()) {
   const query = (preferences.query ?? "").trim().toLowerCase();
+  const now = Date.now();
 
   return restaurants.filter((restaurant) => {
     if (query && !restaurant.name.toLowerCase().includes(query)) {
@@ -246,7 +258,7 @@ export function filterRestaurants(restaurants, preferences, clock = localClock()
       return false;
     }
 
-    if (preferences.discounts && !restaurant.hasDiscount) {
+    if (preferences.discounts && !hasDiscount(restaurant, now)) {
       return false;
     }
 
@@ -283,8 +295,7 @@ export function sortRestaurants(restaurants, order, now = Date.now()) {
     copy.sort((left, right) => right.reviewCount - left.reviewCount);
   } else if (order === "discount") {
     const ranked = copy.map((restaurant) => {
-      const active = restaurant.discountOffers.filter((offer) => (offer.startsAt === null || offer.startsAt <= now)
-        && (offer.expiresAt === null || offer.expiresAt > now));
+      const active = restaurant.discountOffers.filter((offer) => discountIsActive(offer, now));
       const discount = active.reduce((largest, offer) => Math.max(largest, offer.percent), 0);
 
       return { restaurant, discount };

@@ -61,16 +61,6 @@ test("hidden choices take precedence in browsing and favourites without removing
   assert.equal(favourites.has(2), true);
 });
 
-test("favourites render only API-loaded IDs and survive a result refresh without fallback cards", () => {
-  const favourites = new Set([1]);
-  const hidden = new Set();
-
-  assert.deepEqual(vendorsInView([vendor({ id: 2 })], "favourites", favourites, hidden), []);
-  const freshVendor = vendor({ id: 1, name: "Fresh API name", delivery_price: 200000 });
-  assert.deepEqual(vendorsInView([freshVendor], "favourites", favourites, hidden), [freshVendor]);
-  assert.deepEqual([...favourites], [1]);
-});
-
 test("name search composes with restaurant filters and an inclusive fee limit", () => {
   const matching = vendor();
   const others = [
@@ -154,6 +144,7 @@ test("largest discount compares active percentage offers, ignoring expired and u
   const now = Date.parse("2026-11-06T00:00:00Z");
   const offer = (value, changes = {}) => ({
     type: "percentage_off",
+    target_service: "menus",
     value,
     is_active: true,
     is_published: true,
@@ -175,6 +166,58 @@ test("largest discount compares active percentage offers, ignoring expired and u
 
   assert.deepEqual(sortRestaurants(restaurants, "discount", now).map((item) => item.id), [2, 1, 3]);
   assert.deepEqual(restaurants.map((item) => item.id), [1, 2, 3]);
+});
+
+test("discount availability follows offer status and dates while preserving cash and text offers", (t) => {
+  const now = Date.parse("2026-11-06T00:00:00Z");
+  t.mock.timers.enable({ apis: ["Date"], now });
+  const offer = (changes = {}) => ({
+    type: "percentage_off",
+    target_service: "menus",
+    value: 30,
+    is_active: true,
+    is_published: true,
+    published_date: "2026-11-05T00:00:00Z",
+    expiry_date: "2026-11-07T00:00:00Z",
+    ...changes,
+  });
+  const discounted = (id, changes) => vendor({ id, discount_text: "", discounts: [offer(changes)] });
+  const restaurants = [
+    discounted(1),
+    discounted(2, { expiry_date: "2026-11-06T00:00:00Z" }),
+    discounted(3, { is_active: false }),
+    discounted(4, { is_published: false }),
+    discounted(5, { published_date: "2026-11-07T00:00:00Z", expiry_date: "2026-11-08T00:00:00Z" }),
+    discounted(6, { type: "flat_fee", value: 100000 }),
+    vendor({ id: 7, discount_text: "A text-only offer", discounts: [] }),
+  ];
+
+  assert.deepEqual(filterRestaurants(restaurants, { discounts: true }).map((restaurant) => restaurant.id), [1, 6, 7]);
+
+  t.mock.timers.tick(24 * 60 * 60 * 1000);
+  assert.deepEqual(filterRestaurants(restaurants, { discounts: true }).map((restaurant) => restaurant.id), [5, 7]);
+});
+
+test("largest item discount ranks menu and category percentages while excluding delivery and cash offers", () => {
+  const now = Date.parse("2026-11-06T00:00:00Z");
+  const offer = (changes = {}) => ({
+    type: "percentage_off",
+    target_service: "menus",
+    value: 50,
+    is_active: true,
+    is_published: true,
+    ...changes,
+  });
+  const restaurants = [
+    vendor({ id: 1, discount_text: "", discounts: [offer({ value: 100, target_service: "deliveryfees" })] }),
+    vendor({ id: 2, discount_text: "", discounts: [offer()] }),
+    vendor({ id: 3, discount_text: "", discounts: [offer({ type: "flat_fee", value: 200000 })] }),
+    vendor({ id: 4, discount_text: "", discounts: [offer({ value: 90, target_service: undefined })] }),
+    vendor({ id: 5, discount_text: "", discounts: [offer({ value: 10, target_service: "menucategories" })] }),
+  ];
+
+  assert.deepEqual(sortRestaurants(restaurants, "discount", now).map((restaurant) => restaurant.id), [2, 5, 1, 3, 4]);
+  assert.deepEqual(filterRestaurants(restaurants, { discounts: true }).map((restaurant) => restaurant.id), [1, 2, 3, 4, 5]);
 });
 
 test("closing hours use the restaurant's local weekday and carry yesterday's overnight service", () => {

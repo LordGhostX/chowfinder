@@ -5,6 +5,7 @@ import {
   closingWindow,
   filterRestaurants,
   foodMatchesFilters,
+  hasDiscount,
   localClock,
   openingWindow,
   parseVendorIds,
@@ -14,6 +15,7 @@ import {
 } from "./restaurant-model.js";
 
 const $ = (id) => document.getElementById(id);
+const initialEmptyState = [...$("empty-state").childNodes];
 const LAST_ADDRESS_KEY = SETTINGS_KEYS.address;
 const FILTERS_KEY = SETTINGS_KEYS.preferences;
 const FAVOURITES_KEY = SETTINGS_KEYS.favourites;
@@ -560,7 +562,7 @@ function renderFreshness() {
   }
 
   $("freshness").textContent = text;
-  $("freshness").hidden = food ? !refreshedAt : state.restaurants.length === 0;
+  $("freshness").hidden = !refreshedAt;
 }
 
 function icon(kind) {
@@ -591,7 +593,7 @@ function hoursText(restaurant, clock) {
       : "Closing time unavailable";
   }
 
-  const window = openingWindow(restaurant, clock);
+  const window = closingWindow(restaurant, clock) ? null : openingWindow(restaurant, clock);
   if (!window) {
     return "Opening time unavailable";
   }
@@ -609,6 +611,7 @@ function hoursText(restaurant, clock) {
 
 function card(restaurant, clock, food = null) {
   const article = element("article", "restaurant-card");
+  article.dataset.key = `${restaurant.id}:${food?.id ?? ""}`;
   article.classList.toggle("is-picked", restaurant.id === state.pickId);
   const label = food ? `${food.name} at ${restaurant.name}` : restaurant.name;
   const imageUrl = food?.image || restaurant.image;
@@ -647,7 +650,7 @@ function card(restaurant, clock, food = null) {
     fallback();
   }
 
-  if (restaurant.hasDiscount) {
+  if (hasDiscount(restaurant)) {
     const offer = element("span", "offer-badge", `✳ ${restaurant.offer || "Discounts available"}`);
     offer.title = `${restaurant.offer || "Discounts available"}. Offers may apply to selected items.`;
     imageLink.append(offer);
@@ -771,6 +774,32 @@ function card(restaurant, clock, food = null) {
   return article;
 }
 
+function renderCards(cards) {
+  const grid = $("restaurant-grid");
+  const focused = document.activeElement;
+  const focusedCard = focused?.closest(".restaurant-card");
+  const focusable = "a, button, summary";
+  const focusIndex = focusedCard ? [...focusedCard.querySelectorAll(focusable)].indexOf(focused) : -1;
+  const openMenus = new Set([...grid.querySelectorAll(".vendor-menu[open]")]
+    .map((menu) => menu.closest(".restaurant-card").dataset.key));
+
+  for (const card of cards) {
+    if (openMenus.has(card.dataset.key)) {
+      const menu = card.querySelector(".vendor-menu");
+      if (menu) {
+        menu.open = true;
+      }
+    }
+  }
+
+  grid.replaceChildren(...cards);
+  if (focusIndex >= 0) {
+    const card = cards.find((item) => item.dataset.key === focusedCard.dataset.key);
+    const target = card?.querySelectorAll(focusable)[focusIndex];
+    (target || $(`view-${state.view}`)).focus({ preventScroll: true });
+  }
+}
+
 function renderChips(filters) {
   const labels = [];
   if (filters.rating) labels.push(`${filters.rating}+ stars`);
@@ -840,18 +869,28 @@ function renderViews() {
 }
 
 function renderPick(restaurant) {
+  const pickFocused = $("pick-result").contains(document.activeElement);
   $("pick-result").hidden = !restaurant;
-  $("pick-result").replaceChildren();
   if (!restaurant) {
+    $("pick-result").replaceChildren();
+    if (pickFocused) {
+      $(`view-${state.view}`).focus({ preventScroll: true });
+    }
+
     return;
   }
 
-  const link = element("a", "", `${restaurant.name} ↗`);
+  let link = $("pick-result").querySelector("a");
+  if (!link) {
+    link = element("a");
+    $("pick-result").append(document.createTextNode("Your pick: "), link);
+  }
+
+  link.textContent = `${restaurant.name} ↗`;
   link.href = restaurant.url;
   link.target = "_blank";
   link.rel = "noopener noreferrer";
   link.setAttribute("aria-label", `Order from ${restaurant.name} on Chowdeck, opens in a new tab`);
-  $("pick-result").append(document.createTextNode("Your pick: "), link);
 }
 
 function render() {
@@ -897,7 +936,7 @@ function render() {
   $("active-filters").hidden = state.view === "hidden" || $("active-filters").hidden;
   document.querySelector(".results").setAttribute("aria-busy", String(loading));
   const cards = food ? foods.map((item) => card(item.vendor, clock, item.food)) : matches.map((vendor) => card(vendor, clock));
-  $("restaurant-grid").replaceChildren(...cards);
+  renderCards(cards);
   $("discount-sort-note").hidden = order !== "discount";
   $("results-error").hidden = !error;
   $("results-error-text").textContent = error;
@@ -961,16 +1000,27 @@ function render() {
       const description = element("p", "", message);
       $("empty-state").replaceChildren(heading, description);
     }
-  } else if (state.loading) {
-    $("results-summary").textContent = "Setting your delivery area…";
   } else {
-    $("results-summary").textContent = "Pick an address to see what’s nearby.";
+    $("results-heading").textContent = "Your next meal starts here";
+    $("empty-state").replaceChildren(...initialEmptyState);
+    $("results-summary").textContent = state.loading
+      ? "Setting your delivery area…"
+      : "Pick an address to see what’s nearby.";
   }
 }
 
 $("address-input").addEventListener("input", () => {
   $("address-error").hidden = true;
   closeSuggestions();
+  if (!state.address && state.loading) {
+    restaurantController?.abort();
+    state.loading = false;
+    state.error = "";
+    retryLastRequest = null;
+    $("selected-address").textContent = "Add your delivery address";
+    render();
+  }
+
   if ($("address-input").value.trim().length >= 3) {
     debounceTimer = setTimeout(findAddresses, 350);
   }
@@ -981,7 +1031,10 @@ $("address-input").addEventListener("keydown", (event) => {
     closeSuggestions();
   } else if (["ArrowDown", "ArrowUp"].includes(event.key) && suggestions.length) {
     event.preventDefault();
-    activeSuggestion = (activeSuggestion + (event.key === "ArrowDown" ? 1 : -1) + suggestions.length) % suggestions.length;
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    activeSuggestion = activeSuggestion < 0
+      ? (direction === 1 ? 0 : suggestions.length - 1)
+      : (activeSuggestion + direction + suggestions.length) % suggestions.length;
     renderSuggestions();
     $(`address-option-${activeSuggestion}`).scrollIntoView({ block: "nearest" });
   } else if (event.key === "Enter" && activeSuggestion >= 0) {

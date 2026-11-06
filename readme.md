@@ -18,6 +18,7 @@ Enter an address and choose a search suggestion. The shared search bar has **Ven
 
 - Minimum rating
 - Maximum delivery fee
+- Meal budget (Food mode only): up to 2,000, 3,000, 5,000, 7,500, 10,000 or 15,000 in the displayed currency
 - Minimum time before closing: 30 minutes, 1 hour, 2 hours, 3 hours or 4 hours
 - Discounts
 - Open and available now
@@ -28,7 +29,7 @@ Enter an address and choose a search suggestion. The shared search bar has **Ven
 
 **Closest** sorts by Chowdeck's numeric `distance` field, with missing distances last. Filters and sorting apply to the loaded vendors. The initial request and **Load more** each retrieve up to 100 vendors; the result count and pagination note show whether more remain. Selecting a vendor opens Chowdeck in a new tab.
 
-In **Food**, filters and sorting use the item's vendor. **Ready when you are** also requires the food to be in stock. Food search returns a batch without pagination metadata, so **Load more** is available only in Vendors mode; refine the food query for different matches. Item links open the vendor on Chowdeck, where options and final prices can be checked.
+In **Food**, vendor filters and sorting use the item's vendor. **Meal budget** limits each item's current API-listed price, including a lower discounted price when provided; it excludes delivery, packaging and optional extras. Items with unknown prices are excluded while a budget is selected. The budget is remembered, cleared by **Reset**, and inactive in Vendors mode. **Ready when you are** also requires the food to be in stock. Food search returns a batch without pagination metadata, so **Load more** is available only in Vendors mode; refine the food query for different matches. Item links open the vendor on Chowdeck, where options and final prices can be checked.
 
 **Most reviewed** sorts by review count. **Largest discount** sorts by the biggest active, published percentage offer on selected items, excluding expired or future-published offers. Cash discounts and text-only offers have no comparable percentage and sort after percentage offers.
 

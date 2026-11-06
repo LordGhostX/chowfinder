@@ -3,6 +3,7 @@ import { FoodSearch } from "./food-search.js";
 import {
   closingWindow,
   filterRestaurants,
+  foodMatchesFilters,
   localClock,
   parseVendorIds,
   sortRestaurants,
@@ -150,6 +151,7 @@ function restoreFilters() {
 
     for (const [key, id] of [
       ["fee", "fee-filter"],
+      ["mealBudget", "meal-budget-filter"],
       ["closing", "closing-filter"],
       ["sort", "sort-order"],
     ]) {
@@ -231,6 +233,7 @@ function preferences() {
   return {
     rating: Number(document.querySelector('input[name="rating"]:checked').value),
     fee: $("fee-filter").value === "" ? null : Number($("fee-filter").value),
+    mealBudget: $("meal-budget-filter").value === "" ? null : Number($("meal-budget-filter").value),
     closing: $("closing-filter").value === "" ? null : Number($("closing-filter").value),
     discounts: $("discount-filter").checked,
     open: $("open-filter").checked,
@@ -241,9 +244,11 @@ function preferences() {
 }
 
 function updateCurrency() {
-  for (const option of $("fee-filter").options) {
-    if (option.value !== "" && option.value !== "0") {
-      option.textContent = `Up to ${money(Number(option.value) * 100)}`;
+  for (const id of ["fee-filter", "meal-budget-filter"]) {
+    for (const option of $(id).options) {
+      if (option.value !== "" && option.value !== "0") {
+        option.textContent = `Up to ${money(Number(option.value) * 100)}`;
+      }
     }
   }
 }
@@ -684,6 +689,7 @@ function renderChips(filters) {
   const labels = [];
   if (filters.rating) labels.push(`${filters.rating}+ stars`);
   if (filters.fee !== null) labels.push(filters.fee === 0 ? "Free delivery" : `Delivery ≤ ${money(filters.fee * 100)}`);
+  if (showingFood() && filters.mealBudget !== null) labels.push(`Meal ≤ ${money(filters.mealBudget * 100)}`);
   if (filters.closing !== null) labels.push(`Open for ≥ ${$("closing-filter").selectedOptions[0].textContent}`);
   if (filters.discounts) labels.push("With discounts");
   if (filters.open) labels.push("Open now");
@@ -709,7 +715,7 @@ function matchingVendors(filters, clock) {
     source = loadedVendors();
   } else if (showingFood()) {
     source = foodSearch.state.groups
-      .filter((group) => group.foods.some((food) => !filters.open || food.inStock === true))
+      .filter((group) => group.foods.some((food) => foodMatchesFilters(food, filters)))
       .map((group) => group.vendor);
   }
 
@@ -733,6 +739,7 @@ function renderViews() {
       ? "Food from API-loaded favourites appears here. Your filters still apply, and hidden vendors stay hidden."
       : "Only API-loaded favourites appear here. Your filters still apply, and hidden vendors stay hidden. Load more to find saved vendors from later pages.";
   $("filter-form").inert = managingHidden;
+  $("meal-budget-field").hidden = !showingFood();
   document.querySelector(".filters").classList.toggle("filters-paused", managingHidden);
   $("reset-filters").disabled = managingHidden;
   $("vendor-search").disabled = managingHidden;
@@ -748,7 +755,7 @@ function renderViews() {
   $("vendor-search-help").textContent = managingHidden
     ? "Search is paused while managing hidden vendors."
     : state.searchMode === "food"
-      ? "Search restaurant menus near your address. Refine your query for different matches; vendor filters and sorting still apply."
+      ? "Search restaurant menus near your address. Refine your query for different matches; your filters and vendor sorting still apply."
       : "Searches the vendors you’ve loaded.";
 }
 
@@ -784,7 +791,7 @@ function render() {
   }
 
   const foods = food ? matches.flatMap((vendor) => groups.get(vendor.id)
-    .filter((item) => !filters.open || item.inStock === true).map((item) => ({ vendor, food: item }))) : [];
+    .filter((item) => foodMatchesFilters(item, filters)).map((item) => ({ vendor, food: item }))) : [];
   state.pickId = pick?.id ?? null;
   renderPick(pick);
   $("pick-for-me").disabled = matches.length === 0 || state.view === "hidden";
@@ -838,7 +845,7 @@ function render() {
       if (food) {
         title = filters.query.trim() ? "No food matches just yet." : "What are you craving?";
         message = filters.query.trim()
-          ? "Try a different food name or relax a vendor filter."
+          ? "Try a different food name or relax a filter."
           : "Type a dish, ingredient or food name to search near your address.";
         if (state.view === "favourites") {
           message += " Only saved, visible vendors are included in this view.";

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { searchFood } from "../dist/api.js";
 import { FoodSearch } from "../dist/food-search.js";
+import { foodMatchesFilters, normalizeFood } from "../dist/restaurant-model.js";
 
 function response(id, foodChanges = {}) {
   return {
@@ -28,6 +29,22 @@ function deferred() {
 }
 
 const settle = () => new Promise((resolve) => setImmediate(resolve));
+
+test("meal budgets use the current item price, include the limit and free items, and compose with stock availability", () => {
+  const item = (id, changes = {}) => normalizeFood({ id, name: "Rice", price: 200000, in_stock: true, ...changes }, "NGN");
+  const foods = [
+    item(1, { price: 250000, discount_price: 200000 }),
+    item(2, { price: 200001 }),
+    item(3, { in_stock: false }),
+    item(4, { price: 0 }),
+    item(5, { price: null }),
+  ];
+  const matches = (preferences) => foods.filter((food) => foodMatchesFilters(food, preferences)).map((food) => food.id);
+
+  assert.deepEqual(matches({ mealBudget: 2000, open: true }), [1, 4]);
+  assert.deepEqual(matches({ mealBudget: 2000, open: false }), [1, 3, 4]);
+  assert.deepEqual(matches({ mealBudget: null, open: false }), [1, 2, 3, 4, 5]);
+});
 
 test("food search uses the address and dish query with the selected restaurant-menu scope", async (t) => {
   const fetch = t.mock.method(globalThis, "fetch", async () => response(2, { discount_price: 200000 }));

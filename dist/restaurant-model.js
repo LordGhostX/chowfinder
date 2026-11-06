@@ -190,6 +190,15 @@ export function normalizeFood(raw, vendorCurrency) {
   };
 }
 
+export function foodMatchesFilters(food, preferences) {
+  if (preferences.mealBudget !== null && preferences.mealBudget !== undefined
+    && (food.price === null || food.price > preferences.mealBudget * 100)) {
+    return false;
+  }
+
+  return !preferences.open || food.inStock === true;
+}
+
 export function parseVendorIds(serialized) {
   try {
     const ids = JSON.parse(serialized);
